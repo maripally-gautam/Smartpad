@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Note, MediaAttachment, Reminder } from '../types';
 import Icon from '../components/Icon';
@@ -159,10 +158,22 @@ const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
 if (recognition) {
   recognition.continuous = true;
-  recognition.interimResults = true;
+  recognition.interimResults = false; // Changed to false to prevent duplicates
+  recognition.maxAlternatives = 1;
 }
 
 type Alignment = 'justify' | 'left' | 'right' | 'center';
+
+// Request audio permissions function
+const requestAudioPermissions = async () => {
+  try {
+    const permission = await VoiceRecorder.requestAudioRecordingPermission();
+    return permission.value;
+  } catch (error) {
+    console.error('Error requesting audio permission:', error);
+    return false;
+  }
+};
 
 const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpdateNote, onBack, onDelete }) => {
   const { settings } = useAppContext();
@@ -187,6 +198,18 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
 
   const contentRef = useRef<HTMLDivElement>(null);
   const initialNoteRef = useRef<Note | null>(null);
+  const recognitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Check permissions on mount
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const hasPermission = await requestAudioPermissions();
+      if (!hasPermission) {
+        console.log('Microphone permission not granted');
+      }
+    };
+    checkPermissions();
+  }, []);
 
   const countCharacters = (htmlString: string) => {
     if (!htmlString) return 0;
@@ -281,31 +304,140 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
 
   useEffect(() => {
     if (!recognition) return;
+    
     recognition.onresult = (event: any) => {
+      // Clear any existing timeout
+      if (recognitionTimeoutRef.current) {
+        clearTimeout(recognitionTimeoutRef.current);
+      }
+
       let finalTranscript = '';
       for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + ' ';
+        }
       }
+      
       if (finalTranscript && contentRef.current) {
         contentRef.current.focus();
         document.execCommand('insertText', false, finalTranscript);
+        handleContentInput();
+      }
+
+      // Restart recognition after a pause
+      recognitionTimeoutRef.current = setTimeout(() => {
+        if (isListening && recognition) {
+          try {
+            recognition.stop();
+            setTimeout(() => {
+              if (isListening) {
+                recognition.start();
+              }
+            }, 100);
+          } catch (error) {
+            console.log('Recognition restart error:', error);
+          }
+        }
+      }, 1000);
+    };
+
+    recognition.onerror = (event: any) => { 
+      console.error('Speech recognition error:', event.error);
+      if (event.error === 'no-speech' || event.error === 'audio-capture') {
+        // Don't show alert for these common errors, just restart
+        if (isListening) {
+          setTimeout(() => {
+            try {
+              if (recognition && isListening) {
+                recognition.start();
+              }
+            } catch (error) {
+              console.log('Restart error:', error);
+            }
+          }, 100);
+        }
+      } else if (event.error !== 'aborted') {
+        setIsListening(false);
       }
     };
-    recognition.onerror = (event: any) => { console.error('Speech recognition error:', event.error); setIsListening(false); };
-    recognition.onend = () => setIsListening(false);
-    return () => { if (recognition) recognition.stop(); }
-  }, []);
 
-  const startListening = (lang: string) => {
-    if (!recognition) { alert('Speech recognition is not supported in this browser.'); return; }
+    recognition.onend = () => {
+      // Auto-restart if still listening
+      if (isListening) {
+        setTimeout(() => {
+          try {
+            if (recognition && isListening) {
+              recognition.start();
+            }
+          } catch (error) {
+            console.log('Auto-restart error:', error);
+          }
+        }, 100);
+      }
+    };
+
+    return () => { 
+      if (recognitionTimeoutRef.current) {
+        clearTimeout(recognitionTimeoutRef.current);
+      }
+      if (recognition && isListening) {
+        try {
+          recognition.stop();
+        } catch (error) {
+          console.log('Cleanup error:', error);
+        }
+      }
+    };
+  }, [isListening]);
+
+  const startListening = async (lang: string) => {
+    if (!recognition) { 
+      alert('Speech recognition is not supported in this browser.'); 
+      return; 
+    }
+
+    const hasPermission = await requestAudioPermissions();
+    if (!hasPermission) {
+      alert('Microphone permission denied. Please enable it in settings.');
+      return;
+    }
+
     setIsLanguageModalOpen(false);
-    if (isListening) recognition.stop();
+    
+    // Stop if already listening
+    if (isListening) {
+      try {
+        recognition.stop();
+      } catch (error) {
+        console.log('Stop error:', error);
+      }
+    }
+    
     recognition.lang = lang;
-    recognition.start();
-    setIsListening(true);
+    
+    try {
+      setIsListening(true);
+      recognition.start();
+    } catch (error) {
+      console.error('Failed to start listening:', error);
+      alert('Failed to start speech recognition');
+      setIsListening(false);
+    }
   };
   
-  const stopListening = () => { if (recognition) recognition.stop(); setIsListening(false); }
+  const stopListening = () => { 
+    setIsListening(false);
+    if (recognitionTimeoutRef.current) {
+      clearTimeout(recognitionTimeoutRef.current);
+    }
+    if (recognition) {
+      try {
+        recognition.stop();
+      } catch (error) {
+        console.log('Stop error:', error);
+      }
+    }
+  };
 
   const handleSave = () => onSave(createNoteObject());
   const handleDeleteConfirm = () => { if (note) onDelete(note.id); setIsDeleteModalOpen(false); };
@@ -333,19 +465,25 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     if (isRecording) {
       try {
         const result = await VoiceRecorder.stopRecording();
-        if (result.value) {
-            const audioSrc = `data:audio/aac;base64,${result.value}`;
-            setMedia(prev => [...prev, { id: new Date().toISOString(), type: 'audio', src: audioSrc }]);
+        if (result.value && result.value.recordDataBase64) {
+          const audioSrc = `data:audio/aac;base64,${result.value.recordDataBase64}`;
+          setMedia(prev => [...prev, { id: new Date().toISOString(), type: 'audio', src: audioSrc }]);
         }
-      } catch (error) { console.error("Error stopping recording:", error); }
+      } catch (error) { 
+        console.error("Error stopping recording:", error);
+        alert("Failed to stop recording");
+      }
       setIsRecording(false);
     } else {
+      const hasPermission = await requestAudioPermissions();
+      if (!hasPermission) {
+        alert("Microphone permission is required to record audio.");
+        return;
+      }
+
       try {
-        const permission = await VoiceRecorder.requestAudioRecordingPermission();
-        if (permission.value) {
-          await VoiceRecorder.startRecording();
-          setIsRecording(true);
-        } else { alert("Microphone permission is required to record audio."); }
+        await VoiceRecorder.startRecording();
+        setIsRecording(true);
       } catch (error) {
         console.error("Error starting recording:", error);
         alert("Could not start recording. Please check permissions.");
@@ -384,6 +522,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       }
     } catch (error) {
       console.error('Error taking picture:', error);
+      alert('Failed to capture image. Please check camera permissions.');
     }
     setIsImageChoiceModalOpen(false);
   };
@@ -406,8 +545,8 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const audioMedia = media.filter(m => m.type === 'audio');
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-primary text-slate-900 dark:text-text-primary">
-      <header className="p-4 flex justify-between items-center border-b border-slate-200 dark:border-border-color sticky top-0 bg-white dark:bg-primary z-10">
+    <div className="h-screen w-screen flex flex-col bg-white dark:bg-primary text-slate-900 dark:text-text-primary overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <header className="p-3 flex justify-between items-center border-b border-slate-200 dark:border-border-color bg-white dark:bg-primary z-10 flex-shrink-0">
         <button onClick={handleBackPress} className="p-2 -ml-2"><Icon name="back" /></button>
         <div className="flex items-center gap-2">
           <button onClick={handleTextToSpeech} className="p-2"><Icon name={isSpeaking ? 'stop' : 'tts'} /></button>
@@ -415,28 +554,29 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
             <Icon name={reminder ? 'reminder-active' : 'reminder'} />
           </button>
           {note && <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 text-red-500 hover:text-red-400"><Icon name="trash" /></button>}
-          <button onClick={handleSave} className="bg-accent text-white px-4 py-1.5 rounded-full font-semibold">Done</button>
+          <button onClick={handleSave} className="bg-accent text-white px-4 py-1.5 rounded-full font-semibold text-sm">Done</button>
         </div>
       </header>
       
-      <div className="flex-1 flex flex-col overflow-y-auto p-4 gap-4">
+      <div className="flex-1 flex flex-col overflow-y-auto p-3 gap-3">
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Title"
-          className="bg-transparent text-2xl font-bold placeholder-slate-400 dark:placeholder-text-secondary focus:outline-none flex-shrink-0 p-4 border border-slate-200 dark:border-border-color rounded-lg"
+          className="bg-transparent text-xl font-bold placeholder-slate-400 dark:placeholder-text-secondary focus:outline-none flex-shrink-0 p-3 border border-slate-200 dark:border-border-color rounded-lg"
         />
-        <div className="relative flex-1 min-h-[200px] border border-slate-200 dark:border-border-color rounded-lg">
+        <div className="relative flex-1 min-h-[120px] max-h-[200px] border border-slate-200 dark:border-border-color rounded-lg overflow-hidden">
           <div
             ref={contentRef}
             contentEditable
             onInput={handleContentInput}
-            className="bg-transparent text-slate-800 dark:text-text-primary focus:outline-none w-full h-full p-4"
+            className="bg-transparent text-slate-800 dark:text-text-primary focus:outline-none w-full h-full p-3 overflow-y-auto"
+            style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
           />
           {!content.replace(/<[^>]*>?/gm, ' ').trim() && (
             <div 
-              className="absolute inset-0 p-4 text-slate-400 dark:text-text-secondary pointer-events-none"
+              className="absolute inset-0 p-3 text-slate-400 dark:text-text-secondary pointer-events-none"
               aria-hidden="true"
             >
               Start writing here...
@@ -446,11 +586,11 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         
         {imageMedia.length > 0 && (
           <div className="flex-shrink-0">
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 gap-2">
               {imageMedia.map(item => (
                 <div key={item.id} className="relative group aspect-square">
                   <img src={item.src} alt="attachment" className="rounded-lg w-full h-full object-cover" />
-                  <button onClick={() => handleDeleteMedia(item.id)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Remove media"><Icon name="plus" className="w-3 h-3 transform rotate-45" /></button>
+                  <button onClick={() => handleDeleteMedia(item.id)} className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Remove media"><Icon name="plus" className="w-3 h-3 transform rotate-45" /></button>
                 </div>
               ))}
             </div>
@@ -461,7 +601,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
             <div className="flex-shrink-0 space-y-2">
                 {audioMedia.map(item => (
                     <div key={item.id} className="relative group flex items-center gap-2 bg-slate-100 dark:bg-secondary p-2 rounded-lg">
-                        <audio controls src={item.src} className="w-full" />
+                        <audio controls src={item.src} className="w-full h-8" />
                         <button onClick={() => handleDeleteMedia(item.id)} className="flex-shrink-0 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Remove media"><Icon name="plus" className="w-3 h-3 transform rotate-45" /></button>
                     </div>
                 ))}
@@ -501,18 +641,18 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         </div>
       </Modal>
 
-      <div className="w-full text-right text-xs font-medium text-slate-500 dark:text-text-secondary px-4 py-1 bg-white dark:bg-primary border-t border-slate-200 dark:border-border-color">
+      <div className="w-full text-right text-xs font-medium text-slate-500 dark:text-text-secondary px-3 py-1 bg-white dark:bg-primary border-t border-slate-200 dark:border-border-color flex-shrink-0">
         Characters: {characterCount}
       </div>
-      <footer className="w-full bg-slate-100 dark:bg-secondary">
-        <div className="max-w-md mx-auto h-20 flex justify-around items-center px-2">
-          <div className="flex justify-around items-center w-full">
+      <footer className="w-full bg-slate-100 dark:bg-secondary flex-shrink-0" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="max-w-full mx-auto h-16 flex justify-around items-center px-2 overflow-x-auto">
+          <div className="flex justify-around items-center min-w-max gap-1">
             <ToolbarButton onClick={() => handleStyleClick('bold')} icon="bold" label="Bold" isActive={activeStyles.has('bold')} />
             <ToolbarButton onClick={() => handleStyleClick('italic')} icon="italic" label="Italic" isActive={activeStyles.has('italic')} />
             <ToolbarButton onClick={() => handleStyleClick('underline')} icon="underline" label="Underline" isActive={activeStyles.has('underline')} />
             <ToolbarButton onClick={handleAlignmentClick} icon={alignmentIconMap[alignment]} label="Align" />
             <ToolbarButton onClick={() => setIsFontSizeModalOpen(true)} icon="fontSize" label="Size" />
-            <div className="w-px h-12 bg-slate-300 dark:bg-border-color"></div>
+            <div className="w-px h-10 bg-slate-300 dark:bg-border-color"></div>
             <ToolbarButton onClick={() => setIsImageChoiceModalOpen(true)} icon="image" label="Image" />
             <ToolbarButton onClick={isListening ? stopListening : () => setIsLanguageModalOpen(true)} icon="like" label="Speak" isActive={isListening} />
             <ToolbarButton onClick={handleRecordVoice} icon="mic" label="Record" isActive={isRecording} />

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Smartpad</string>
+    <string name="title_activity_main">Smartpad</string>
+    <string name="package_name">com.smartpad.app</string>
+    <string name="custom_url_scheme">com.smartpad.app</string>
+</resources>
