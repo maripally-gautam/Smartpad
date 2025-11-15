@@ -9,7 +9,7 @@ import SettingsScreen from './screens/SettingsScreen';
 import TopNavBar from './components/TopNavBar';
 import { INITIAL_SETTINGS } from './constants';
 import { App as CapacitorApp } from '@capacitor/app';
-import { StatusBar } from '@capacitor/status-bar';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
@@ -26,7 +26,7 @@ export default function App() {
       // Hide the splash screen
       await SplashScreen.hide();
       // Set status bar style
-      await StatusBar.setStyle({ style: settings.theme === 'dark' ? 'dark' : 'light' });
+      await StatusBar.setStyle({ style: settings.theme === 'dark' ? Style.Dark : Style.Light });
 
       CapacitorApp.addListener('backButton', ({ canGoBack }) => {
         if (!canGoBack || currentScreen === 'list') {
@@ -43,10 +43,10 @@ export default function App() {
     const html = document.documentElement;
     if (settings.theme === 'dark') {
       html.classList.add('dark');
-      StatusBar.setStyle({ style: 'dark' });
+      StatusBar.setStyle({ style: Style.Dark });
     } else {
       html.classList.remove('dark');
-      StatusBar.setStyle({ style: 'light' });
+      StatusBar.setStyle({ style: Style.Light });
     }
   }, [settings.theme]);
 

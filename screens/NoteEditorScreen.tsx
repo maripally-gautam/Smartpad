@@ -333,8 +333,10 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     if (isRecording) {
       try {
         const result = await VoiceRecorder.stopRecording();
-        const audioSrc = `data:${result.mimeType};base64,${result.value}`;
-        setMedia(prev => [...prev, { id: new Date().toISOString(), type: 'audio', src: audioSrc }]);
+        if (result.value) {
+            const audioSrc = `data:audio/aac;base64,${result.value}`;
+            setMedia(prev => [...prev, { id: new Date().toISOString(), type: 'audio', src: audioSrc }]);
+        }
       } catch (error) { console.error("Error stopping recording:", error); }
       setIsRecording(false);
     } else {
