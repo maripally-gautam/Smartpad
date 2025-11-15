@@ -1,0 +1,8 @@
+{
+  "name": "Smartpad",
+  "description": "A comprehensive mobile notepad application designed for intuitive note-taking, media integration, and reminder setting.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
