@@ -17,12 +17,12 @@ const SettingsRow: React.FC<{
   children?: React.ReactNode;
   onClick?: () => void;
 }> = ({ icon, title, subtitle, children, onClick }) => (
-  <div 
-    className={`bg-slate-100 dark:bg-secondary p-4 rounded-lg flex items-center ${onClick ? 'cursor-pointer' : ''}`}
+  <div
+    className={`bg-slate-100 dark:bg-secondary p-3 rounded-lg flex items-center ${onClick ? 'cursor-pointer' : ''}`}
     onClick={onClick}
   >
-    <div className="bg-accent bg-opacity-20 p-2 rounded-lg mr-4">
-      <Icon name={icon} className="w-6 h-6 text-accent" />
+    <div className="bg-accent bg-opacity-20 p-2 rounded-lg mr-3">
+      <Icon name={icon} className="w-5 h-5 text-accent" />
     </div>
     <div className="flex-1">
       <p className="text-slate-800 dark:text-text-primary">{title}</p>
@@ -48,14 +48,14 @@ const ConfirmationDialog: React.FC<{
         <h2 className="text-xl font-bold text-slate-900 dark:text-text-primary mb-2">{title}</h2>
         <p className="text-slate-600 dark:text-text-secondary mb-6">{message}</p>
         <div className="flex justify-center gap-4">
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="px-6 py-2 rounded-full bg-slate-200 dark:bg-border-color text-slate-800 dark:text-text-primary font-semibold hover:bg-slate-300 dark:hover:bg-opacity-80 transition-colors"
           >
             Cancel
           </button>
-          <button 
-            onClick={onConfirm} 
+          <button
+            onClick={onConfirm}
             className="px-6 py-2 rounded-full bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors"
           >
             {confirmText}
@@ -87,7 +87,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
       updateSetting('deleteCompletedTasks', false);
     }
   };
-  
+
   const handleNotificationsToggle = async (value: boolean) => {
     if (value) {
       try {
@@ -109,14 +109,14 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-primary text-slate-800 dark:text-text-primary">
-      <header className="p-4 flex items-center gap-4 border-b border-slate-200 dark:border-border-color sticky top-0 bg-white dark:bg-primary z-10">
+      <header className="p-3 flex items-center gap-3 border-b border-slate-200 dark:border-border-color flex-shrink-0 bg-white dark:bg-primary z-10">
         <button onClick={onBack} className="p-2 -ml-2"><Icon name="back" /></button>
-        <h1 className="text-2xl font-bold">Settings</h1>
+        <h1 className="text-xl font-bold">Settings</h1>
       </header>
-      
-      <div className="flex-1 p-4 overflow-y-auto space-y-6">
+
+      <div className="flex-1 p-3 overflow-y-auto space-y-4">
         <section>
-          <h2 className="text-slate-500 dark:text-text-secondary font-semibold mb-2 px-2">APPEARANCE</h2>
+          <h2 className="text-slate-500 dark:text-text-secondary font-semibold text-xs mb-1.5 px-1">APPEARANCE</h2>
           <div className="space-y-2">
             <SettingsRow icon="theme" title="Theme">
               <div className="bg-slate-200 dark:bg-primary p-1 rounded-full flex text-sm">
@@ -133,9 +133,9 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
             </SettingsRow>
           </div>
         </section>
-        
+
         <section>
-          <h2 className="text-slate-500 dark:text-text-secondary font-semibold mb-2 px-2">NOTIFICATIONS</h2>
+          <h2 className="text-slate-500 dark:text-text-secondary font-semibold text-xs mb-1.5 px-1">NOTIFICATIONS</h2>
           <div className="space-y-2">
             <SettingsRow icon="notifications" title="Allow Notifications" subtitle="For note reminders">
               <ToggleSwitch enabled={settings.allowNotifications} onChange={handleNotificationsToggle} />
@@ -144,13 +144,13 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
         </section>
 
         <section>
-          <h2 className="text-slate-500 dark:text-text-secondary font-semibold mb-2 px-2">GENERAL</h2>
-           <div className="space-y-2">
+          <h2 className="text-slate-500 dark:text-text-secondary font-semibold text-xs mb-1.5 px-1">GENERAL</h2>
+          <div className="space-y-2">
             <SettingsRow icon="save" title="Auto-Save" subtitle={settings.autoSave ? "Enabled, every 5s" : "Disabled"}>
-                <ToggleSwitch enabled={settings.autoSave} onChange={(val) => updateSetting('autoSave', val)} />
+              <ToggleSwitch enabled={settings.autoSave} onChange={(val) => updateSetting('autoSave', val)} />
             </SettingsRow>
             <SettingsRow icon="trash" title="Delete Completed Tasks" subtitle="Instantly delete notes when marked complete">
-                <ToggleSwitch enabled={settings.deleteCompletedTasks} onChange={handleDeleteCompletedToggle} />
+              <ToggleSwitch enabled={settings.deleteCompletedTasks} onChange={handleDeleteCompletedToggle} />
             </SettingsRow>
           </div>
         </section>

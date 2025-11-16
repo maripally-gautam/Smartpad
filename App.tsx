@@ -7,6 +7,7 @@ import NotesListScreen from './screens/NotesListScreen';
 import NoteEditorScreen from './screens/NoteEditorScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import TopNavBar from './components/TopNavBar';
+import SafeAreaContainer from './components/SafeAreaContainer';
 import { INITIAL_SETTINGS } from './constants';
 import { App as CapacitorApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -16,7 +17,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 export default function App() {
   const [notes, setNotes] = useLocalStorage<Note[]>('notes', []);
   const [settings, setSettings] = useLocalStorage<Settings>('settings', INITIAL_SETTINGS);
-  
+
   const [currentScreen, setCurrentScreen] = useState<Screen>('list');
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
 
@@ -25,6 +26,8 @@ export default function App() {
     const initCapacitor = async () => {
       // Hide the splash screen
       await SplashScreen.hide();
+      // Set status bar to not overlay content
+      await StatusBar.setOverlaysWebView({ overlay: false });
       // Set status bar style
       await StatusBar.setStyle({ style: settings.theme === 'dark' ? Style.Dark : Style.Light });
 
@@ -43,9 +46,11 @@ export default function App() {
     const html = document.documentElement;
     if (settings.theme === 'dark') {
       html.classList.add('dark');
+      StatusBar.setOverlaysWebView({ overlay: false });
       StatusBar.setStyle({ style: Style.Dark });
     } else {
       html.classList.remove('dark');
+      StatusBar.setOverlaysWebView({ overlay: false });
       StatusBar.setStyle({ style: Style.Light });
     }
   }, [settings.theme]);
@@ -84,7 +89,7 @@ export default function App() {
           return;
       }
     } while (nextReminderTime <= now);
-    
+
     const updatedReminder = { ...reminder, time: nextReminderTime.toISOString() };
     handleUpdateNote({ ...note, reminder: updatedReminder });
   };
@@ -92,70 +97,70 @@ export default function App() {
   useEffect(() => {
     const scheduleNotifications = async () => {
       if (!settings.allowNotifications) return;
-      
+
       let permission = await LocalNotifications.checkPermissions();
       if (permission.display === 'denied') {
-          // User has explicitly denied permissions. We can't do anything.
-          return;
+        // User has explicitly denied permissions. We can't do anything.
+        return;
       }
       if (permission.display !== 'granted') {
-          permission = await LocalNotifications.requestPermissions();
+        permission = await LocalNotifications.requestPermissions();
       }
 
       if (permission.display === 'granted') {
         // Clear all previous notifications
         const pending = await LocalNotifications.getPending();
         if (pending.notifications.length > 0) {
-            await LocalNotifications.cancel({ notifications: pending.notifications });
+          await LocalNotifications.cancel({ notifications: pending.notifications });
         }
 
         const notificationsToSchedule = [];
 
         for (const note of notes) {
-            if (note.reminder) {
-                const reminderTime = new Date(note.reminder.time);
-                const now = new Date();
+          if (note.reminder) {
+            const reminderTime = new Date(note.reminder.time);
+            const now = new Date();
 
-                if (reminderTime > now) {
-                    const textContent = note.content.replace(/<[^>]*>?/gm, ' ').trim();
-                    const snippet = textContent.substring(0, 100);
-                    notificationsToSchedule.push({
-                        id: Math.floor(Math.random() * 10000), // Simple unique ID
-                        title: note.title,
-                        body: snippet,
-                        schedule: { at: reminderTime },
-                        extra: { noteId: note.id }
-                    });
-                } else if (note.reminder.repeat && note.reminder.repeat !== 'none') {
-                    // If the time is in the past and it's repeating, schedule the next one.
-                    updateNoteWithNextReminder(note, note.reminder);
-                }
+            if (reminderTime > now) {
+              const textContent = note.content.replace(/<[^>]*>?/gm, ' ').trim();
+              const snippet = textContent.substring(0, 100);
+              notificationsToSchedule.push({
+                id: Math.floor(Math.random() * 10000), // Simple unique ID
+                title: note.title,
+                body: snippet,
+                schedule: { at: reminderTime },
+                extra: { noteId: note.id }
+              });
+            } else if (note.reminder.repeat && note.reminder.repeat !== 'none') {
+              // If the time is in the past and it's repeating, schedule the next one.
+              updateNoteWithNextReminder(note, note.reminder);
             }
+          }
         }
 
         if (notificationsToSchedule.length > 0) {
-            await LocalNotifications.schedule({ notifications: notificationsToSchedule });
+          await LocalNotifications.schedule({ notifications: notificationsToSchedule });
         }
       }
     };
-    
+
     scheduleNotifications();
 
     LocalNotifications.addListener('localNotificationActionPerformed', (notificationAction) => {
-        const noteId = notificationAction.notification.extra?.noteId;
-        if(noteId) {
-            const note = notes.find(n => n.id === noteId);
-            if (note) {
-                 // Reschedule if it's a repeating reminder
-                if (note.reminder?.repeat && note.reminder.repeat !== 'none') {
-                    updateNoteWithNextReminder(note, note.reminder);
-                } else {
-                    const { reminder, ...noteWithoutReminder } = note;
-                    handleUpdateNote(noteWithoutReminder as Note);
-                }
-                navigate('editor', noteId);
-            }
+      const noteId = notificationAction.notification.extra?.noteId;
+      if (noteId) {
+        const note = notes.find(n => n.id === noteId);
+        if (note) {
+          // Reschedule if it's a repeating reminder
+          if (note.reminder?.repeat && note.reminder.repeat !== 'none') {
+            updateNoteWithNextReminder(note, note.reminder);
+          } else {
+            const { reminder, ...noteWithoutReminder } = note;
+            handleUpdateNote(noteWithoutReminder as Note);
+          }
+          navigate('editor', noteId);
         }
+      }
     });
 
     return () => {
@@ -181,23 +186,23 @@ export default function App() {
 
   const handleNewNote = () => {
     if (settings.autoSave) {
-        const newNote: Note = {
-            id: new Date().toISOString(),
-            title: 'Untitled Note',
-            content: '',
-            media: [],
-            lastModified: new Date().toISOString(),
-            isPinned: false,
-            isFavourite: false,
-            isCompleted: false,
-        };
-        setNotes(prevNotes => [newNote, ...prevNotes]);
-        navigate('editor', newNote.id);
+      const newNote: Note = {
+        id: new Date().toISOString(),
+        title: 'Untitled Note',
+        content: '',
+        media: [],
+        lastModified: new Date().toISOString(),
+        isPinned: false,
+        isFavourite: false,
+        isCompleted: false,
+      };
+      setNotes(prevNotes => [newNote, ...prevNotes]);
+      navigate('editor', newNote.id);
     } else {
-        navigate('editor', null);
+      navigate('editor', null);
     }
   };
-  
+
   const handleBack = () => {
     window.history.back();
   };
@@ -214,15 +219,15 @@ export default function App() {
     });
     handleBack();
   }, [setNotes]);
-  
+
   const handleUpdateNote = useCallback((noteToUpdate: Note) => {
     setNotes(prevNotes => {
-        const noteExists = prevNotes.some(note => note.id === noteToUpdate.id);
-        if (noteExists) {
-            return prevNotes.map(note => note.id === noteToUpdate.id ? noteToUpdate : note);
-        } else {
-            return [noteToUpdate, ...prevNotes];
-        }
+      const noteExists = prevNotes.some(note => note.id === noteToUpdate.id);
+      if (noteExists) {
+        return prevNotes.map(note => note.id === noteToUpdate.id ? noteToUpdate : note);
+      } else {
+        return [noteToUpdate, ...prevNotes];
+      }
     });
   }, [setNotes]);
 
@@ -241,11 +246,11 @@ export default function App() {
     if (!noteToToggle) return;
 
     if (settings.deleteCompletedTasks && !noteToToggle.isCompleted) {
-        deleteNoteById(noteId);
+      deleteNoteById(noteId);
     } else {
-        setNotes(prevNotes =>
-            prevNotes.map(n => (n.id === noteId ? { ...n, isCompleted: !n.isCompleted, lastModified: new Date().toISOString() } : n))
-        );
+      setNotes(prevNotes =>
+        prevNotes.map(n => (n.id === noteId ? { ...n, isCompleted: !n.isCompleted, lastModified: new Date().toISOString() } : n))
+      );
     }
   }, [setNotes, notes, settings.deleteCompletedTasks, deleteNoteById]);
 
@@ -277,16 +282,18 @@ export default function App() {
 
   return (
     <AppProvider value={{ notes, setNotes, settings, setSettings }}>
-      <div className="w-full min-h-screen font-sans bg-white dark:bg-primary">
-        <div className="max-w-md mx-auto h-screen flex flex-col bg-white dark:bg-primary shadow-2xl">
-          <TopNavBar 
-            currentScreen={currentScreen} 
-            onNavigate={handleNavigate} 
-            onNewNote={handleNewNote}
-          />
-          <main className="flex-1 overflow-y-auto">
-            {renderScreen()}
-          </main>
+      <div className="w-full h-screen font-sans bg-white dark:bg-primary">
+        <div className="max-w-md mx-auto h-full shadow-2xl">
+          <SafeAreaContainer className="bg-white dark:bg-primary">
+            <TopNavBar
+              currentScreen={currentScreen}
+              onNavigate={handleNavigate}
+              onNewNote={handleNewNote}
+            />
+            <main className="flex-1 overflow-y-auto">
+              {renderScreen()}
+            </main>
+          </SafeAreaContainer>
         </div>
       </div>
     </AppProvider>

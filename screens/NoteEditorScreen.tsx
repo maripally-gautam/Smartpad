@@ -25,7 +25,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children, title }) => {
   );
 };
 
-const LanguageSelectionModal: React.FC<{onSelect: (lang: string) => void, onClose: () => void}> = ({ onSelect, onClose }) => (
+const LanguageSelectionModal: React.FC<{ onSelect: (lang: string) => void, onClose: () => void }> = ({ onSelect, onClose }) => (
   <div className="space-y-2">
     <button onClick={() => onSelect('en-US')} className="w-full text-left p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-border-color transition-colors">English</button>
     <button onClick={() => onSelect('hi-IN')} className="w-full text-left p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-border-color transition-colors">Hindi</button>
@@ -54,11 +54,11 @@ const ReminderModal: React.FC<{
         setCustomDays(reminder.customDays || 1);
       }
     } else {
-        const d = new Date();
-        d.setMinutes(d.getMinutes() + 5);
-        setDate(d.toISOString().split('T')[0]);
-        setTime(d.toTimeString().substring(0, 5));
-        setRepeat('none');
+      const d = new Date();
+      d.setMinutes(d.getMinutes() + 5);
+      setDate(d.toISOString().split('T')[0]);
+      setTime(d.toTimeString().substring(0, 5));
+      setRepeat('none');
     }
   }, [reminder]);
 
@@ -66,7 +66,7 @@ const ReminderModal: React.FC<{
     const [year, month, day] = date.split('-').map(Number);
     const [hours, minutes] = time.split(':').map(Number);
     const reminderDate = new Date(year, month - 1, day, hours, minutes);
-    
+
     const newReminder: Reminder = {
       time: reminderDate.toISOString(),
       repeat,
@@ -79,7 +79,7 @@ const ReminderModal: React.FC<{
     onSave(newReminder);
     onClose();
   };
-  
+
   const handleDeleteAndClose = () => {
     onDelete();
     onClose();
@@ -101,45 +101,45 @@ const ReminderModal: React.FC<{
       </select>
       {repeat === 'custom' && (
         <div className="flex items-center gap-2">
-            <span className="text-slate-600 dark:text-text-secondary">Repeat every</span>
-            <input 
-                type="number"
-                value={customDays}
-                onChange={e => setCustomDays(parseInt(e.target.value, 10))}
-                className="w-20 bg-slate-100 dark:bg-border-color p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                min="1"
-            />
-            <span className="text-slate-600 dark:text-text-secondary">days</span>
+          <span className="text-slate-600 dark:text-text-secondary">Repeat every</span>
+          <input
+            type="number"
+            value={customDays}
+            onChange={e => setCustomDays(parseInt(e.target.value, 10))}
+            className="w-20 bg-slate-100 dark:bg-border-color p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+            min="1"
+          />
+          <span className="text-slate-600 dark:text-text-secondary">days</span>
         </div>
       )}
       <div className="flex justify-between items-center pt-4">
         {reminder && <button onClick={handleDeleteAndClose} className="text-red-500 font-semibold">Delete</button>}
         <div className="flex gap-2 ml-auto">
-            <button onClick={onClose} className="px-4 py-2 rounded-full font-semibold">Cancel</button>
-            <button onClick={handleSave} className="px-4 py-2 rounded-full bg-accent text-white font-semibold">Save</button>
+          <button onClick={onClose} className="px-4 py-2 rounded-full font-semibold">Cancel</button>
+          <button onClick={handleSave} className="px-4 py-2 rounded-full bg-accent text-white font-semibold">Save</button>
         </div>
       </div>
     </div>
   );
 };
 
-const ImageChoiceModal: React.FC<{onClose: () => void; onTakePhoto: () => void; onChooseGallery: () => void;}> = ({ onClose, onTakePhoto, onChooseGallery }) => (
-    <div className="space-y-2">
-      <button onClick={onTakePhoto} className="w-full text-left p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-border-color transition-colors flex items-center">
-        <Icon name="camera" className="w-5 h-5 mr-3"/> Take Photo
-      </button>
-      <button onClick={onChooseGallery} className="w-full text-left p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-border-color transition-colors flex items-center">
-        <Icon name="image" className="w-5 h-5 mr-3"/> Choose from Gallery
-      </button>
-    </div>
+const ImageChoiceModal: React.FC<{ onClose: () => void; onTakePhoto: () => void; onChooseGallery: () => void; }> = ({ onClose, onTakePhoto, onChooseGallery }) => (
+  <div className="space-y-2">
+    <button onClick={onTakePhoto} className="w-full text-left p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-border-color transition-colors flex items-center">
+      <Icon name="camera" className="w-5 h-5 mr-3" /> Take Photo
+    </button>
+    <button onClick={onChooseGallery} className="w-full text-left p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-border-color transition-colors flex items-center">
+      <Icon name="image" className="w-5 h-5 mr-3" /> Choose from Gallery
+    </button>
+  </div>
 );
 
-const FontSizeModal: React.FC<{onSelect: (size: number) => void;}> = ({ onSelect }) => (
-    <div className="flex justify-around items-center p-2">
-        <button onClick={() => onSelect(2)} className="px-4 py-2 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-border-color transition-colors">Small</button>
-        <button onClick={() => onSelect(3)} className="px-4 py-2 text-base rounded-lg hover:bg-slate-100 dark:hover:bg-border-color transition-colors">Normal</button>
-        <button onClick={() => onSelect(5)} className="px-4 py-2 text-lg rounded-lg hover:bg-slate-100 dark:hover:bg-border-color transition-colors">Large</button>
-    </div>
+const FontSizeModal: React.FC<{ onSelect: (size: number) => void; }> = ({ onSelect }) => (
+  <div className="flex justify-around items-center p-2">
+    <button onClick={() => onSelect(2)} className="px-4 py-2 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-border-color transition-colors">Small</button>
+    <button onClick={() => onSelect(3)} className="px-4 py-2 text-base rounded-lg hover:bg-slate-100 dark:hover:bg-border-color transition-colors">Normal</button>
+    <button onClick={() => onSelect(5)} className="px-4 py-2 text-lg rounded-lg hover:bg-slate-100 dark:hover:bg-border-color transition-colors">Large</button>
+  </div>
 );
 
 
@@ -182,7 +182,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const [media, setMedia] = useState<MediaAttachment[]>([]);
   const [reminder, setReminder] = useState<Reminder | undefined>(undefined);
   const [characterCount, setCharacterCount] = useState(0);
-  
+
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -221,24 +221,24 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     if (settings.autoSave) return false;
     const currentContent = contentRef.current?.innerHTML || '';
     if (!initialNoteRef.current) {
-        return title.trim() !== '' || (currentContent.trim() !== '' && currentContent.trim() !== '<br>') || media.length > 0;
+      return title.trim() !== '' || (currentContent.trim() !== '' && currentContent.trim() !== '<br>') || media.length > 0;
     }
     return initialNoteRef.current.title !== title ||
-           initialNoteRef.current.content !== currentContent ||
-           JSON.stringify(initialNoteRef.current.media) !== JSON.stringify(media) ||
-           JSON.stringify(initialNoteRef.current.reminder) !== JSON.stringify(reminder);
+      initialNoteRef.current.content !== currentContent ||
+      JSON.stringify(initialNoteRef.current.media) !== JSON.stringify(media) ||
+      JSON.stringify(initialNoteRef.current.reminder) !== JSON.stringify(reminder);
   }, [title, media, reminder, settings.autoSave]);
-  
+
   const createNoteObject = (): Note => ({
-      id: note?.id || new Date().toISOString(),
-      title: title || 'Untitled Note',
-      content: contentRef.current?.innerHTML || '',
-      media: media,
-      lastModified: new Date().toISOString(),
-      reminder: reminder,
-      isPinned: note?.isPinned ?? false,
-      isFavourite: note?.isFavourite ?? false,
-      isCompleted: note?.isCompleted ?? false,
+    id: note?.id || new Date().toISOString(),
+    title: title || 'Untitled Note',
+    content: contentRef.current?.innerHTML || '',
+    media: media,
+    lastModified: new Date().toISOString(),
+    reminder: reminder,
+    isPinned: note?.isPinned ?? false,
+    isFavourite: note?.isFavourite ?? false,
+    isCompleted: note?.isCompleted ?? false,
   });
 
   const updateToolbarState = useCallback(() => {
@@ -279,12 +279,12 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
 
   useEffect(() => {
     const autoSave = () => {
-        if (settings.autoSave) {
-            const hasChanged = JSON.stringify(createNoteObject()) !== JSON.stringify(initialNoteRef.current);
-            if (hasChanged) {
-                onUpdateNote(createNoteObject());
-            }
+      if (settings.autoSave) {
+        const hasChanged = JSON.stringify(createNoteObject()) !== JSON.stringify(initialNoteRef.current);
+        if (hasChanged) {
+          onUpdateNote(createNoteObject());
         }
+      }
     };
     const interval = setInterval(autoSave, 5000);
     return () => clearInterval(interval);
@@ -296,15 +296,15 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     contentEl?.addEventListener('keyup', updateToolbarState);
     contentEl?.addEventListener('click', updateToolbarState);
     return () => {
-        document.removeEventListener('selectionchange', updateToolbarState);
-        contentEl?.removeEventListener('keyup', updateToolbarState);
-        contentEl?.removeEventListener('click', updateToolbarState);
+      document.removeEventListener('selectionchange', updateToolbarState);
+      contentEl?.removeEventListener('keyup', updateToolbarState);
+      contentEl?.removeEventListener('click', updateToolbarState);
     };
   }, [updateToolbarState]);
 
   useEffect(() => {
     if (!recognition) return;
-    
+
     recognition.onresult = (event: any) => {
       // Clear any existing timeout
       if (recognitionTimeoutRef.current) {
@@ -317,7 +317,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
           finalTranscript += event.results[i][0].transcript + ' ';
         }
       }
-      
+
       if (finalTranscript && contentRef.current) {
         contentRef.current.focus();
         document.execCommand('insertText', false, finalTranscript);
@@ -341,7 +341,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       }, 1000);
     };
 
-    recognition.onerror = (event: any) => { 
+    recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
       if (event.error === 'no-speech' || event.error === 'audio-capture') {
         // Don't show alert for these common errors, just restart
@@ -376,7 +376,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       }
     };
 
-    return () => { 
+    return () => {
       if (recognitionTimeoutRef.current) {
         clearTimeout(recognitionTimeoutRef.current);
       }
@@ -391,9 +391,9 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   }, [isListening]);
 
   const startListening = async (lang: string) => {
-    if (!recognition) { 
-      alert('Speech recognition is not supported in this browser.'); 
-      return; 
+    if (!recognition) {
+      alert('Speech recognition is not supported in this browser.');
+      return;
     }
 
     const hasPermission = await requestAudioPermissions();
@@ -403,7 +403,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     }
 
     setIsLanguageModalOpen(false);
-    
+
     // Stop if already listening
     if (isListening) {
       try {
@@ -412,9 +412,9 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         console.log('Stop error:', error);
       }
     }
-    
+
     recognition.lang = lang;
-    
+
     try {
       setIsListening(true);
       recognition.start();
@@ -424,8 +424,8 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       setIsListening(false);
     }
   };
-  
-  const stopListening = () => { 
+
+  const stopListening = () => {
     setIsListening(false);
     if (recognitionTimeoutRef.current) {
       clearTimeout(recognitionTimeoutRef.current);
@@ -449,7 +449,8 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
 
   const handleTextToSpeech = () => {
     if ('speechSynthesis' in window) {
-      if (isSpeaking) { window.speechSynthesis.cancel(); setIsSpeaking(false);
+      if (isSpeaking) {
+        window.speechSynthesis.cancel(); setIsSpeaking(false);
       } else {
         const textToSpeak = title + ". " + contentRef.current?.innerText;
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
@@ -469,7 +470,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
           const audioSrc = `data:audio/aac;base64,${result.value.recordDataBase64}`;
           setMedia(prev => [...prev, { id: new Date().toISOString(), type: 'audio', src: audioSrc }]);
         }
-      } catch (error) { 
+      } catch (error) {
         console.error("Error stopping recording:", error);
         alert("Failed to stop recording");
       }
@@ -491,7 +492,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       }
     }
   };
-  
+
   const handleContentInput = () => {
     const html = contentRef.current?.innerHTML || '';
     setContent(html);
@@ -505,7 +506,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     const nextAlignment = alignments[(alignments.indexOf(alignment) + 1) % alignments.length];
     const commandMap = { justify: 'justifyFull', left: 'justifyLeft', right: 'justifyRight', center: 'justifyCenter' };
     document.execCommand(commandMap[nextAlignment], false);
-    contentRef.current?.focus(); setAlignment(nextAlignment); 
+    contentRef.current?.focus(); setAlignment(nextAlignment);
   };
   const alignmentIconMap: { [key in Alignment]: string } = { justify: 'list', left: 'alignLeft', center: 'alignCenter', right: 'alignRight' };
 
@@ -534,10 +535,10 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     contentRef.current?.focus();
     setIsFontSizeModalOpen(false);
   };
-  
-  const ToolbarButton: React.FC<{onClick: () => void; icon: string; label: string; isActive?: boolean;}> = ({ onClick, icon, label, isActive }) => (
+
+  const ToolbarButton: React.FC<{ onClick: () => void; icon: string; label: string; isActive?: boolean; }> = ({ onClick, icon, label, isActive }) => (
     <button onClick={onClick} className={`flex flex-col items-center justify-center p-2 text-xs w-16 h-16 transition-colors duration-200 focus:outline-none ${isActive ? 'text-accent' : 'text-slate-600 dark:text-text-secondary hover:text-slate-900 dark:hover:text-text-primary'}`} aria-label={label}>
-      <Icon name={icon} className="w-5 h-5 mb-1"/> <span>{label}</span>
+      <Icon name={icon} className="w-5 h-5 mb-1" /> <span>{label}</span>
     </button>
   );
 
@@ -545,7 +546,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const audioMedia = media.filter(m => m.type === 'audio');
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-white dark:bg-primary text-slate-900 dark:text-text-primary overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <div className="flex flex-col h-full bg-white dark:bg-primary text-slate-900 dark:text-text-primary">
       <header className="p-3 flex justify-between items-center border-b border-slate-200 dark:border-border-color bg-white dark:bg-primary z-10 flex-shrink-0">
         <button onClick={handleBackPress} className="p-2 -ml-2"><Icon name="back" /></button>
         <div className="flex items-center gap-2">
@@ -557,8 +558,8 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
           <button onClick={handleSave} className="bg-accent text-white px-4 py-1.5 rounded-full font-semibold text-sm">Done</button>
         </div>
       </header>
-      
-      <div className="flex-1 flex flex-col overflow-y-auto p-3 gap-3">
+
+      <div className="flex-1 flex flex-col overflow-y-auto p-3 gap-3 pb-0">
         <input
           type="text"
           value={title}
@@ -566,7 +567,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
           placeholder="Title"
           className="bg-transparent text-xl font-bold placeholder-slate-400 dark:placeholder-text-secondary focus:outline-none flex-shrink-0 p-3 border border-slate-200 dark:border-border-color rounded-lg"
         />
-        <div className="relative flex-1 min-h-[120px] max-h-[200px] border border-slate-200 dark:border-border-color rounded-lg overflow-hidden">
+        <div className="relative h-48 border border-slate-200 dark:border-border-color rounded-lg overflow-hidden flex-shrink-0">
           <div
             ref={contentRef}
             contentEditable
@@ -575,7 +576,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
             style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
           />
           {!content.replace(/<[^>]*>?/gm, ' ').trim() && (
-            <div 
+            <div
               className="absolute inset-0 p-3 text-slate-400 dark:text-text-secondary pointer-events-none"
               aria-hidden="true"
             >
@@ -583,7 +584,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
             </div>
           )}
         </div>
-        
+
         {imageMedia.length > 0 && (
           <div className="flex-shrink-0">
             <div className="grid grid-cols-3 gap-2">
@@ -598,42 +599,42 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         )}
 
         {audioMedia.length > 0 && (
-            <div className="flex-shrink-0 space-y-2">
-                {audioMedia.map(item => (
-                    <div key={item.id} className="relative group flex items-center gap-2 bg-slate-100 dark:bg-secondary p-2 rounded-lg">
-                        <audio controls src={item.src} className="w-full h-8" />
-                        <button onClick={() => handleDeleteMedia(item.id)} className="flex-shrink-0 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Remove media"><Icon name="plus" className="w-3 h-3 transform rotate-45" /></button>
-                    </div>
-                ))}
-            </div>
+          <div className="flex-shrink-0 space-y-2">
+            {audioMedia.map(item => (
+              <div key={item.id} className="relative group flex items-center gap-2 bg-slate-100 dark:bg-secondary p-2 rounded-lg">
+                <audio controls src={item.src} className="w-full h-8" />
+                <button onClick={() => handleDeleteMedia(item.id)} className="flex-shrink-0 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Remove media"><Icon name="plus" className="w-3 h-3 transform rotate-45" /></button>
+              </div>
+            ))}
+          </div>
         )}
       </div>
-      
+
       <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Delete Note?">
-         <p className="text-slate-600 dark:text-text-secondary mb-6">This action is permanent and cannot be undone.</p>
+        <p className="text-slate-600 dark:text-text-secondary mb-6">This action is permanent and cannot be undone.</p>
         <div className="flex justify-center gap-4">
           <button onClick={() => setIsDeleteModalOpen(false)} className="px-6 py-2 rounded-full bg-slate-200 dark:bg-border-color text-slate-800 dark:text-text-primary font-semibold">Cancel</button>
           <button onClick={handleDeleteConfirm} className="px-6 py-2 rounded-full bg-red-600 text-white font-semibold">Delete</button>
         </div>
       </Modal>
       <Modal isOpen={isLanguageModalOpen} onClose={() => setIsLanguageModalOpen(false)} title="Select Language">
-        <LanguageSelectionModal onSelect={startListening} onClose={() => setIsLanguageModalOpen(false)}/>
+        <LanguageSelectionModal onSelect={startListening} onClose={() => setIsLanguageModalOpen(false)} />
       </Modal>
       <Modal isOpen={isReminderModalOpen} onClose={() => setIsReminderModalOpen(false)} title={reminder ? "Edit Reminder" : "Set Reminder"}>
         <ReminderModal reminder={reminder} onSave={setReminder} onDelete={() => setReminder(undefined)} onClose={() => setIsReminderModalOpen(false)} />
       </Modal>
-       <Modal isOpen={isImageChoiceModalOpen} onClose={() => setIsImageChoiceModalOpen(false)} title="Add Image">
+      <Modal isOpen={isImageChoiceModalOpen} onClose={() => setIsImageChoiceModalOpen(false)} title="Add Image">
         <ImageChoiceModal
-            onClose={() => setIsImageChoiceModalOpen(false)}
-            onTakePhoto={() => takePicture(CameraSource.Camera)}
-            onChooseGallery={() => takePicture(CameraSource.Photos)}
+          onClose={() => setIsImageChoiceModalOpen(false)}
+          onTakePhoto={() => takePicture(CameraSource.Camera)}
+          onChooseGallery={() => takePicture(CameraSource.Photos)}
         />
       </Modal>
-       <Modal isOpen={isFontSizeModalOpen} onClose={() => setIsFontSizeModalOpen(false)} title="Select Font Size">
+      <Modal isOpen={isFontSizeModalOpen} onClose={() => setIsFontSizeModalOpen(false)} title="Select Font Size">
         <FontSizeModal onSelect={handleFontSizeSelect} />
       </Modal>
       <Modal isOpen={isUnsavedChangesModalOpen} onClose={() => setIsUnsavedChangesModalOpen(false)} title="Unsaved Changes">
-         <p className="text-slate-600 dark:text-text-secondary mb-6">You have unsaved changes. Do you want to save them?</p>
+        <p className="text-slate-600 dark:text-text-secondary mb-6">You have unsaved changes. Do you want to save them?</p>
         <div className="flex justify-end gap-2">
           <button onClick={() => setIsUnsavedChangesModalOpen(false)} className="px-5 py-2 rounded-full font-semibold hover:bg-slate-100 dark:hover:bg-border-color">Cancel</button>
           <button onClick={() => { setIsUnsavedChangesModalOpen(false); onBack(); }} className="px-5 py-2 rounded-full font-semibold text-red-500 hover:bg-red-500/10">Discard</button>
@@ -644,7 +645,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       <div className="w-full text-right text-xs font-medium text-slate-500 dark:text-text-secondary px-3 py-1 bg-white dark:bg-primary border-t border-slate-200 dark:border-border-color flex-shrink-0">
         Characters: {characterCount}
       </div>
-      <footer className="w-full bg-slate-100 dark:bg-secondary flex-shrink-0" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <footer className="w-full bg-slate-100 dark:bg-secondary flex-shrink-0" style={{ paddingBottom: 'var(--safe-bottom)' }}>
         <div className="max-w-full mx-auto h-16 flex justify-around items-center px-2 overflow-x-auto">
           <div className="flex justify-around items-center min-w-max gap-1">
             <ToolbarButton onClick={() => handleStyleClick('bold')} icon="bold" label="Bold" isActive={activeStyles.has('bold')} />
