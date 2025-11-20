@@ -197,7 +197,7 @@ const NotesListScreen: React.FC<NotesListScreenProps> = ({ onSelectNote, onDelet
         </div>
       </header>
 
-      <div className="flex-1 p-3 overflow-y-auto">
+      <div className="flex-1 p-3 overflow-y-auto" style={{ paddingBottom: 'calc(1rem + var(--safe-bottom))' }}>
         {notes.length === 0 ? (
           <div className="text-center text-slate-500 dark:text-text-secondary mt-16 flex flex-col items-center">
             <Icon name="notes" className="w-12 h-12 mb-4" />

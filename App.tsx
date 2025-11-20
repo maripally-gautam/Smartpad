@@ -26,10 +26,16 @@ export default function App() {
     const initCapacitor = async () => {
       // Hide the splash screen
       await SplashScreen.hide();
-      // Set status bar to not overlay content
-      await StatusBar.setOverlaysWebView({ overlay: false });
-      // Set status bar style
-      await StatusBar.setStyle({ style: settings.theme === 'dark' ? Style.Dark : Style.Light });
+
+      try {
+        // Set status bar to not overlay content
+        await StatusBar.setOverlaysWebView({ overlay: false });
+        // Set status bar style and color
+        await StatusBar.setStyle({ style: settings.theme === 'dark' ? Style.Dark : Style.Light });
+        await StatusBar.setBackgroundColor({ color: settings.theme === 'dark' ? '#0F172A' : '#FFFFFF' });
+      } catch (e) {
+        console.error('Status bar error', e);
+      }
 
       CapacitorApp.addListener('backButton', ({ canGoBack }) => {
         if (!canGoBack || currentScreen === 'list') {
@@ -40,18 +46,14 @@ export default function App() {
       });
     };
     initCapacitor();
-  }, []);
+  }, [settings.theme]);
 
   useEffect(() => {
     const html = document.documentElement;
     if (settings.theme === 'dark') {
       html.classList.add('dark');
-      StatusBar.setOverlaysWebView({ overlay: false });
-      StatusBar.setStyle({ style: Style.Dark });
     } else {
       html.classList.remove('dark');
-      StatusBar.setOverlaysWebView({ overlay: false });
-      StatusBar.setStyle({ style: Style.Light });
     }
   }, [settings.theme]);
 
@@ -282,15 +284,15 @@ export default function App() {
 
   return (
     <AppProvider value={{ notes, setNotes, settings, setSettings }}>
-      <div className="w-full h-screen font-sans bg-white dark:bg-primary">
-        <div className="max-w-md mx-auto h-full shadow-2xl">
+      <div className="w-full h-full font-sans bg-white dark:bg-primary overflow-hidden">
+        <div className="w-full h-full shadow-2xl">
           <SafeAreaContainer className="bg-white dark:bg-primary">
             <TopNavBar
               currentScreen={currentScreen}
               onNavigate={handleNavigate}
               onNewNote={handleNewNote}
             />
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1 overflow-hidden relative flex flex-col">
               {renderScreen()}
             </main>
           </SafeAreaContainer>

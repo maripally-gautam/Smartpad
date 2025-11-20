@@ -13,7 +13,7 @@ const SafeAreaContainer: React.FC<SafeAreaContainerProps> = ({ children, classNa
     useEffect(() => {
         const isAndroid = /Android/i.test(navigator.userAgent);
         // Slightly larger top fallback for devices with taller status bars.
-        const topFallback = isAndroid ? 32 : 0; // 32dp gives extra breathing room
+        const topFallback = isAndroid ? 0 : 0; // 0dp because we are using overlay: false
         const bottomFallback = isAndroid ? 0 : 0; // we'll handle bottom spacing per-screen
 
         // Attempt to use visualViewport to refine (if available)
