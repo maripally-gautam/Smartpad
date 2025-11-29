@@ -8,6 +8,10 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https'
   },
+  android: {
+    backgroundColor: "#0F172A",
+    allowMixedContent: true,
+  },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
@@ -20,6 +24,10 @@ const config: CapacitorConfig = {
       overlaysWebView: false,
       style: "DARK",
       backgroundColor: "#0F172A",
+    },
+    Keyboard: {
+      resize: "body",
+      resizeOnFullScreen: true,
     },
     LocalNotifications: {
       smallIcon: "ic_stat_icon_config_sample",

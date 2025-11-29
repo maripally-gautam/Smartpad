@@ -165,6 +165,9 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const [media, setMedia] = useState<MediaAttachment[]>([]);
   const [reminder, setReminder] = useState<Reminder | undefined>(undefined);
   const [characterCount, setCharacterCount] = useState(0);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [toolbarBottom, setToolbarBottom] = useState(0);
+  const [selectedImage, setSelectedImage] = useState<MediaAttachment | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -182,6 +185,51 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const contentRef = useRef<HTMLDivElement>(null);
   const initialNoteRef = useRef<Note | null>(null);
   const recognitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const initialWindowHeight = useRef(window.innerHeight);
+
+  // Keyboard detection and toolbar positioning using visualViewport API
+  useEffect(() => {
+    const updateToolbarPosition = () => {
+      if (window.visualViewport) {
+        const viewport = window.visualViewport;
+        // Calculate how much the viewport has been pushed up by the keyboard
+        // The toolbar should be at the bottom of the visible viewport
+        // offsetTop is how much the viewport has scrolled from the top of the layout viewport
+        // We need to position from the bottom of the screen
+        const screenHeight = window.innerHeight;
+        const viewportBottom = viewport.offsetTop + viewport.height;
+        const bottomOffset = screenHeight - viewportBottom;
+
+        setToolbarBottom(bottomOffset);
+
+        // Keyboard is visible if viewport height is significantly less than screen height
+        const heightDiff = screenHeight - viewport.height;
+        setKeyboardVisible(heightDiff > 100);
+      }
+    };
+
+    // Initial setup
+    initialWindowHeight.current = window.innerHeight;
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateToolbarPosition);
+      window.visualViewport.addEventListener('scroll', updateToolbarPosition);
+      // Initial call
+      updateToolbarPosition();
+    }
+
+    // Also listen for window resize as fallback
+    window.addEventListener('resize', updateToolbarPosition);
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', updateToolbarPosition);
+        window.visualViewport.removeEventListener('scroll', updateToolbarPosition);
+      }
+      window.removeEventListener('resize', updateToolbarPosition);
+    };
+  }, []);
 
   // Check permissions on mount
   useEffect(() => {
@@ -528,9 +576,16 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const imageMedia = media.filter(m => m.type === 'image');
   const audioMedia = media.filter(m => m.type === 'audio');
 
+  // Toolbar height for content padding
+  const toolbarTotalHeight = 88; // character count bar (~24px) + toolbar (~64px)
+
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-primary text-slate-900 dark:text-text-primary">
-      <header className="p-3 flex justify-between items-center border-b border-slate-200 dark:border-border-color bg-white dark:bg-primary z-10 flex-shrink-0">
+    <div
+      ref={containerRef}
+      className="fixed inset-0 flex flex-col bg-white dark:bg-primary text-slate-900 dark:text-text-primary overflow-hidden"
+    >
+      {/* Header - Fixed at top */}
+      <header className="flex-shrink-0 p-3 flex justify-between items-center border-b border-slate-200 dark:border-border-color bg-white dark:bg-primary z-20">
         <button onClick={handleBackPress} className="p-2 -ml-2"><Icon name="back" /></button>
         <div className="flex items-center gap-2">
           <button onClick={handleTextToSpeech} className="p-2"><Icon name={isSpeaking ? 'stop' : 'tts'} /></button>
@@ -542,55 +597,116 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col overflow-y-auto p-3 gap-3 pb-0">
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Title"
-          className="bg-transparent text-xl font-bold placeholder-slate-400 dark:placeholder-text-secondary focus:outline-none flex-shrink-0 p-3 border border-slate-200 dark:border-border-color rounded-lg"
-        />
-        <div className="relative h-48 border border-slate-200 dark:border-border-color rounded-lg overflow-hidden flex-shrink-0">
-          <div
-            ref={contentRef}
-            contentEditable
-            onInput={handleContentInput}
-            className="bg-transparent text-slate-800 dark:text-text-primary focus:outline-none w-full h-full p-3 overflow-y-auto"
-            style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
+      {/* Main Content Area - Scrollable, with padding for fixed toolbar */}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ paddingBottom: `${toolbarTotalHeight + toolbarBottom}px` }}
+      >
+        <div className="p-3 flex flex-col gap-3 min-h-full">
+          {/* Title Input */}
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Title"
+            className="bg-transparent text-xl font-bold placeholder-slate-400 dark:placeholder-text-secondary focus:outline-none flex-shrink-0 p-3 border border-slate-200 dark:border-border-color rounded-lg"
           />
-          {!content.replace(/<[^>]*>?/gm, ' ').trim() && (
+
+          {/* Content Editor - Takes full available height */}
+          <div
+            className="relative flex-1 border border-slate-200 dark:border-border-color rounded-lg overflow-hidden flex flex-col"
+            style={{ minHeight: '300px' }}
+          >
             <div
-              className="absolute inset-0 p-3 text-slate-400 dark:text-text-secondary pointer-events-none"
-              aria-hidden="true"
-            >
-              Start writing here...
+              ref={contentRef}
+              contentEditable
+              onInput={handleContentInput}
+              className="bg-transparent text-slate-800 dark:text-text-primary focus:outline-none w-full flex-1 p-3 overflow-y-auto"
+              style={{ wordWrap: 'break-word', overflowWrap: 'break-word', minHeight: '100%' }}
+            />
+            {!content.replace(/<[^>]*>?/gm, ' ').trim() && (
+              <div
+                className="absolute top-0 left-0 right-0 p-3 text-slate-400 dark:text-text-secondary pointer-events-none"
+                aria-hidden="true"
+              >
+                Start writing here...
+              </div>
+            )}
+          </div>
+
+          {/* Image Media Grid */}
+          {imageMedia.length > 0 && (
+            <div className="flex-shrink-0">
+              <div className="grid grid-cols-3 gap-2">
+                {imageMedia.map(item => (
+                  <div key={item.id} className="relative aspect-square">
+                    {/* Image - clickable to open preview */}
+                    <img
+                      src={item.src}
+                      alt="attachment"
+                      className="rounded-lg w-full h-full object-cover cursor-pointer"
+                      onClick={() => setSelectedImage(item)}
+                    />
+                    {/* Delete button - always visible */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteMedia(item.id);
+                      }}
+                      className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg z-10"
+                      aria-label="Remove image"
+                    >
+                      <Icon name="plus" className="w-4 h-4 transform rotate-45" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-        </div>
 
-        {imageMedia.length > 0 && (
-          <div className="flex-shrink-0">
-            <div className="grid grid-cols-3 gap-2">
-              {imageMedia.map(item => (
-                <div key={item.id} className="relative group aspect-square">
-                  <img src={item.src} alt="attachment" className="rounded-lg w-full h-full object-cover" />
-                  <button onClick={() => handleDeleteMedia(item.id)} className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Remove media"><Icon name="plus" className="w-3 h-3 transform rotate-45" /></button>
+          {/* Audio Media List */}
+          {audioMedia.length > 0 && (
+            <div className="flex-shrink-0 space-y-2">
+              {audioMedia.map(item => (
+                <div key={item.id} className="relative group flex items-center gap-2 bg-slate-100 dark:bg-secondary p-2 rounded-lg">
+                  <audio controls src={item.src} className="w-full h-8" />
+                  <button onClick={() => handleDeleteMedia(item.id)} className="flex-shrink-0 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Remove media"><Icon name="plus" className="w-3 h-3 transform rotate-45" /></button>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      </div>
 
-        {audioMedia.length > 0 && (
-          <div className="flex-shrink-0 space-y-2">
-            {audioMedia.map(item => (
-              <div key={item.id} className="relative group flex items-center gap-2 bg-slate-100 dark:bg-secondary p-2 rounded-lg">
-                <audio controls src={item.src} className="w-full h-8" />
-                <button onClick={() => handleDeleteMedia(item.id)} className="flex-shrink-0 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Remove media"><Icon name="plus" className="w-3 h-3 transform rotate-45" /></button>
-              </div>
-            ))}
+      {/* Bottom Toolbar - Fixed at bottom, moves up with keyboard */}
+      <div
+        className="fixed left-0 right-0 bg-white dark:bg-primary border-t border-slate-200 dark:border-border-color z-50"
+        style={{
+          bottom: `${toolbarBottom}px`,
+          transition: 'bottom 0.1s ease-out'
+        }}
+      >
+        {/* Character Count */}
+        <div className="w-full text-right text-xs font-medium text-slate-500 dark:text-text-secondary px-3 py-1 border-b border-slate-200 dark:border-border-color">
+          Characters: {characterCount}
+        </div>
+
+        {/* Formatting Toolbar */}
+        <footer className="w-full bg-slate-100 dark:bg-secondary">
+          <div className="max-w-full mx-auto h-16 flex justify-around items-center px-2 overflow-x-auto">
+            <div className="flex justify-around items-center min-w-max gap-1">
+              <ToolbarButton onClick={() => handleStyleClick('bold')} icon="bold" label="Bold" isActive={activeStyles.has('bold')} />
+              <ToolbarButton onClick={() => handleStyleClick('italic')} icon="italic" label="Italic" isActive={activeStyles.has('italic')} />
+              <ToolbarButton onClick={() => handleStyleClick('underline')} icon="underline" label="Underline" isActive={activeStyles.has('underline')} />
+              <ToolbarButton onClick={handleAlignmentClick} icon={alignmentIconMap[alignment]} label="Align" />
+              <ToolbarButton onClick={() => setIsFontSizeModalOpen(true)} icon="fontSize" label="Size" />
+              <div className="w-px h-10 bg-slate-300 dark:bg-border-color"></div>
+              <ToolbarButton onClick={() => setIsImageChoiceModalOpen(true)} icon="image" label="Image" />
+              <ToolbarButton onClick={isListening ? stopListening : () => setIsLanguageModalOpen(true)} icon="like" label="Speak" isActive={isListening} />
+              <ToolbarButton onClick={handleRecordVoice} icon="mic" label="Record" isActive={isRecording} />
+            </div>
           </div>
-        )}
+        </footer>
       </div>
 
       <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Delete Note?">
@@ -625,24 +741,27 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         </div>
       </Modal>
 
-      <div className="w-full text-right text-xs font-medium text-slate-500 dark:text-text-secondary px-3 py-1 bg-white dark:bg-primary border-t border-slate-200 dark:border-border-color flex-shrink-0">
-        Characters: {characterCount}
-      </div>
-      <footer className="w-full bg-slate-100 dark:bg-secondary flex-shrink-0" style={{ paddingBottom: 'var(--safe-bottom)' }}>
-        <div className="max-w-full mx-auto h-16 flex justify-around items-center px-2 overflow-x-auto">
-          <div className="flex justify-around items-center min-w-max gap-1">
-            <ToolbarButton onClick={() => handleStyleClick('bold')} icon="bold" label="Bold" isActive={activeStyles.has('bold')} />
-            <ToolbarButton onClick={() => handleStyleClick('italic')} icon="italic" label="Italic" isActive={activeStyles.has('italic')} />
-            <ToolbarButton onClick={() => handleStyleClick('underline')} icon="underline" label="Underline" isActive={activeStyles.has('underline')} />
-            <ToolbarButton onClick={handleAlignmentClick} icon={alignmentIconMap[alignment]} label="Align" />
-            <ToolbarButton onClick={() => setIsFontSizeModalOpen(true)} icon="fontSize" label="Size" />
-            <div className="w-px h-10 bg-slate-300 dark:bg-border-color"></div>
-            <ToolbarButton onClick={() => setIsImageChoiceModalOpen(true)} icon="image" label="Image" />
-            <ToolbarButton onClick={isListening ? stopListening : () => setIsLanguageModalOpen(true)} icon="like" label="Speak" isActive={isListening} />
-            <ToolbarButton onClick={handleRecordVoice} icon="mic" label="Record" isActive={isRecording} />
-          </div>
+      {/* Image Preview Modal */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white p-2 bg-black/50 rounded-full"
+            onClick={() => setSelectedImage(null)}
+          >
+            <Icon name="plus" className="w-6 h-6 transform rotate-45" />
+          </button>
+          <img
+            src={selectedImage.src}
+            alt="Preview"
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
-      </footer>
+      )}
+
     </div>
   );
 };

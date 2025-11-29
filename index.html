@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Smartpad</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -25,6 +26,28 @@
     }
   </script>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body,
+    #root {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      left: 0;
+    }
+
+    body {
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
     [contenteditable][placeholder]:empty:before {
       content: attr(placeholder);
       color: #94A3B8;
@@ -32,6 +55,15 @@
       pointer-events: none;
       display: block;
       /* For line-break */
+    }
+
+    /* Safe area padding utilities */
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .mb-safe {
+      margin-bottom: env(safe-area-inset-bottom, 0px);
     }
   </style>
   <script type="importmap">
