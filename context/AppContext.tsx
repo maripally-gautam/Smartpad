@@ -1,10 +1,16 @@
-
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
 import { AppContextType } from '../types';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export const AppProvider = AppContext.Provider;
+interface AppProviderProps {
+  children: ReactNode;
+  value: AppContextType;
+}
+
+export const AppProvider: React.FC<AppProviderProps> = ({ children, value }) => {
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+};
 
 export const useAppContext = (): AppContextType => {
   const context = useContext(AppContext);
