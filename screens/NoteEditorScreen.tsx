@@ -188,31 +188,28 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const initialNoteRef = useRef<Note | null>(null);
   const recognitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollableRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const initialWindowHeight = useRef(window.innerHeight);
 
   // Keyboard detection and toolbar positioning using visualViewport API
   useEffect(() => {
-    let lastHeight = window.innerHeight;
-
     const updateToolbarPosition = () => {
-      if (window.visualViewport) {
+      if (window.visualViewport && toolbarRef.current) {
         const viewport = window.visualViewport;
-        const screenHeight = window.innerHeight;
 
-        // Calculate keyboard height based on viewport
-        const keyboardHeight = screenHeight - viewport.height - viewport.offsetTop;
+        // Position toolbar at the bottom of the visible viewport
+        // This accounts for both keyboard and any viewport scrolling
+        const toolbarHeight = toolbarRef.current.offsetHeight;
+        const topPosition = viewport.height - toolbarHeight + viewport.offsetTop;
 
-        // Only update if there's a meaningful change (prevents micro-bouncing)
-        const newBottom = Math.max(0, keyboardHeight);
+        toolbarRef.current.style.top = `${topPosition}px`;
+        toolbarRef.current.style.bottom = 'auto';
 
-        // Use requestAnimationFrame for smoother updates
-        requestAnimationFrame(() => {
-          setToolbarBottom(newBottom);
-          // Keyboard is visible if viewport height is significantly less than screen height
-          setKeyboardVisible(keyboardHeight > 100);
-        });
-
-        lastHeight = viewport.height;
+        // Track keyboard visibility for padding
+        const keyboardHeight = Math.round(window.innerHeight - viewport.height);
+        setToolbarBottom(Math.max(0, keyboardHeight));
+        setKeyboardVisible(keyboardHeight > 50);
       }
     };
 
@@ -223,10 +220,9 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       window.visualViewport.addEventListener('resize', updateToolbarPosition);
       window.visualViewport.addEventListener('scroll', updateToolbarPosition);
       // Initial call
-      updateToolbarPosition();
+      requestAnimationFrame(updateToolbarPosition);
     }
 
-    // Also listen for window resize as fallback
     window.addEventListener('resize', updateToolbarPosition);
 
     return () => {
@@ -723,7 +719,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   return (
     <div
       ref={containerRef}
-      className="h-full flex flex-col bg-white dark:bg-primary text-slate-900 dark:text-text-primary overflow-hidden"
+      className="h-full flex flex-col bg-white dark:bg-primary text-slate-900 dark:text-text-primary"
     >
       {/* Header - Editor toolbar */}
       <header className="flex-shrink-0 p-3 flex justify-between items-center border-b border-slate-200 dark:border-border-color bg-white dark:bg-primary z-20">
@@ -741,100 +737,96 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         </div>
       </header>
 
-      {/* Main Content Area - Full height layout with reserved space for toolbar at bottom */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Scrollable content area */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-3 flex flex-col gap-3 h-full">
-            {/* Title Input */}
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title"
-              className="bg-transparent text-xl font-bold placeholder-slate-400 dark:placeholder-text-secondary focus:outline-none flex-shrink-0 p-3 border border-slate-200 dark:border-border-color rounded-lg"
-            />
+      {/* Main Content Area - Scrollable, adjusts for keyboard */}
+      <div
+        ref={scrollableRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col"
+        style={{ paddingBottom: `${reservedBottomSpace + toolbarBottom}px` }}
+      >
+        <div className="p-3 flex flex-col gap-3 flex-1">
+          {/* Title Input */}
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Title"
+            className="bg-transparent text-xl font-bold placeholder-slate-400 dark:placeholder-text-secondary focus:outline-none flex-shrink-0 p-3 border border-slate-200 dark:border-border-color rounded-lg"
+          />
 
-            {/* Content Editor - Full height, fills available space */}
+          {/* Content Editor - Full height, fills all remaining space */}
+          <div
+            className="relative border border-slate-200 dark:border-border-color rounded-lg overflow-hidden flex-1 flex flex-col"
+          >
             <div
-              className="relative border border-slate-200 dark:border-border-color rounded-lg overflow-hidden flex flex-col flex-1"
-              style={{ minHeight: '200px' }}
-            >
+              ref={contentRef}
+              contentEditable
+              onInput={handleContentInput}
+              className="bg-transparent text-slate-800 dark:text-text-primary focus:outline-none w-full p-3 flex-1"
+              style={{ wordWrap: 'break-word', overflowWrap: 'break-word', minHeight: '100%' }}
+            />
+            {!content.replace(/<[^>]*>?/gm, ' ').trim() && (
               <div
-                ref={contentRef}
-                contentEditable
-                onInput={handleContentInput}
-                className="bg-transparent text-slate-800 dark:text-text-primary focus:outline-none w-full flex-1 p-3 overflow-y-auto"
-                style={{ wordWrap: 'break-word', overflowWrap: 'break-word', minHeight: '100%' }}
-              />
-              {!content.replace(/<[^>]*>?/gm, ' ').trim() && (
-                <div
-                  className="absolute top-0 left-0 right-0 p-3 text-slate-400 dark:text-text-secondary pointer-events-none"
-                  aria-hidden="true"
-                >
-                  Start writing here...
-                </div>
-              )}
-            </div>
-
-            {/* Image Media Grid */}
-            {imageMedia.length > 0 && (
-              <div className="flex-shrink-0">
-                <div className="grid grid-cols-3 gap-2">
-                  {imageMedia.map(item => (
-                    <div key={item.id} className="relative aspect-square">
-                      {/* Image - clickable to open preview */}
-                      <img
-                        src={item.src}
-                        alt="attachment"
-                        className="rounded-lg w-full h-full object-cover cursor-pointer"
-                        onClick={() => setSelectedImage(item)}
-                      />
-                      {/* Delete button - always visible */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteMedia(item.id);
-                        }}
-                        className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg z-10"
-                        aria-label="Remove image"
-                      >
-                        <Icon name="plus" className="w-4 h-4 transform rotate-45" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Audio Media List */}
-            {audioMedia.length > 0 && (
-              <div className="flex-shrink-0 space-y-2">
-                {audioMedia.map(item => (
-                  <div key={item.id} className="relative group flex items-center gap-2 bg-slate-100 dark:bg-secondary p-2 rounded-lg">
-                    <audio controls src={item.src} className="w-full h-8" />
-                    <button onClick={() => handleDeleteMedia(item.id)} className="flex-shrink-0 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Remove media"><Icon name="plus" className="w-3 h-3 transform rotate-45" /></button>
-                  </div>
-                ))}
+                className="absolute top-0 left-0 right-0 p-3 text-slate-400 dark:text-text-secondary pointer-events-none"
+                aria-hidden="true"
+              >
+                Start writing here...
               </div>
             )}
           </div>
-        </div>
 
-        {/* Reserved space for toolbar when keyboard is hidden - this keeps layout consistent */}
-        <div
-          className="flex-shrink-0 bg-white dark:bg-primary"
-          style={{ height: `${reservedBottomSpace}px` }}
-        />
+          {/* Image Media Grid */}
+          {imageMedia.length > 0 && (
+            <div className="flex-shrink-0">
+              <div className="grid grid-cols-3 gap-2">
+                {imageMedia.map(item => (
+                  <div key={item.id} className="relative aspect-square">
+                    {/* Image - clickable to open preview */}
+                    <img
+                      src={item.src}
+                      alt="attachment"
+                      className="rounded-lg w-full h-full object-cover cursor-pointer"
+                      onClick={() => setSelectedImage(item)}
+                    />
+                    {/* Delete button - always visible */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteMedia(item.id);
+                      }}
+                      className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg z-10"
+                      aria-label="Remove image"
+                    >
+                      <Icon name="plus" className="w-4 h-4 transform rotate-45" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Audio Media List */}
+          {audioMedia.length > 0 && (
+            <div className="flex-shrink-0 space-y-2">
+              {audioMedia.map(item => (
+                <div key={item.id} className="relative group flex items-center gap-2 bg-slate-100 dark:bg-secondary p-2 rounded-lg">
+                  <audio controls src={item.src} className="w-full h-8" />
+                  <button onClick={() => handleDeleteMedia(item.id)} className="flex-shrink-0 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Remove media"><Icon name="plus" className="w-3 h-3 transform rotate-45" /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Bottom Toolbar - Fixed position, attached to keyboard when visible */}
       <div
-        className="fixed left-0 right-0 bottom-0 bg-white dark:bg-primary border-t border-slate-200 dark:border-border-color z-50"
+        ref={toolbarRef}
+        className="fixed left-0 right-0 bg-white dark:bg-primary border-t border-slate-200 dark:border-border-color z-50"
         style={{
-          transform: `translateY(-${toolbarBottom}px)`,
-          willChange: 'transform'
+          bottom: 0,
+          touchAction: 'none'
         }}
+        onTouchMove={(e) => e.stopPropagation()}
       >
         {/* Character Count */}
         <div className="w-full text-right text-xs font-medium text-slate-500 dark:text-text-secondary px-3 py-1 border-b border-slate-200 dark:border-border-color">
@@ -842,8 +834,8 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         </div>
 
         {/* Formatting Toolbar */}
-        <footer className="w-full bg-slate-100 dark:bg-secondary">
-          <div className="max-w-full mx-auto h-16 flex justify-around items-center px-2 overflow-x-auto">
+        <footer className="w-full bg-slate-100 dark:bg-secondary" style={{ touchAction: 'none' }}>
+          <div className="max-w-full mx-auto h-16 flex justify-around items-center px-2 overflow-x-auto" style={{ touchAction: 'pan-x' }}>
             <div className="flex justify-around items-center min-w-max gap-1">
               <ToolbarButton onClick={() => handleStyleClick('bold')} icon="bold" label="Bold" isActive={activeStyles.has('bold')} />
               <ToolbarButton onClick={() => handleStyleClick('italic')} icon="italic" label="Italic" isActive={activeStyles.has('italic')} />
