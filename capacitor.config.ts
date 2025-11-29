@@ -1,5 +1,6 @@
 
 import { CapacitorConfig } from '@capacitor/cli';
+import { KeyboardResize } from '@capacitor/keyboard';
 
 const config: CapacitorConfig = {
   appId: 'com.smartpad.app',
@@ -26,7 +27,7 @@ const config: CapacitorConfig = {
       backgroundColor: "#0F172A",
     },
     Keyboard: {
-      resize: "body",
+      resize: KeyboardResize.Body,
       resizeOnFullScreen: true,
     },
     LocalNotifications: {

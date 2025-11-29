@@ -6,6 +6,7 @@ import { useAppContext } from '../context/AppContext';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { VoiceRecorder } from 'capacitor-voice-recorder';
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
+import { Keyboard } from '@capacitor/keyboard';
 
 // -- MODAL COMPONENTS -- //
 
@@ -168,7 +169,6 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const [reminder, setReminder] = useState<Reminder | undefined>(undefined);
   const [characterCount, setCharacterCount] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const [toolbarBottom, setToolbarBottom] = useState(0);
   const [selectedImage, setSelectedImage] = useState<MediaAttachment | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
@@ -192,45 +192,32 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const toolbarRef = useRef<HTMLDivElement>(null);
   const initialWindowHeight = useRef(window.innerHeight);
 
-  // Keyboard detection and toolbar positioning using visualViewport API
+  // Keyboard detection - toolbar stays at bottom of visible area
   useEffect(() => {
-    const updateToolbarPosition = () => {
-      if (window.visualViewport && toolbarRef.current) {
-        const viewport = window.visualViewport;
+    let keyboardShowListener: any;
+    let keyboardHideListener: any;
 
-        // Position toolbar at the bottom of the visible viewport
-        // This accounts for both keyboard and any viewport scrolling
-        const toolbarHeight = toolbarRef.current.offsetHeight;
-        const topPosition = viewport.height - toolbarHeight + viewport.offsetTop;
+    const setupKeyboardListeners = async () => {
+      try {
+        // With KeyboardResize.Body, the body resizes when keyboard appears
+        // So we just need to keep toolbar at bottom: 0 and it will be above keyboard
+        keyboardShowListener = await Keyboard.addListener('keyboardDidShow', () => {
+          setKeyboardVisible(true);
+        });
 
-        toolbarRef.current.style.top = `${topPosition}px`;
-        toolbarRef.current.style.bottom = 'auto';
-
-        // Track keyboard visibility for padding
-        const keyboardHeight = Math.round(window.innerHeight - viewport.height);
-        setToolbarBottom(Math.max(0, keyboardHeight));
-        setKeyboardVisible(keyboardHeight > 50);
+        keyboardHideListener = await Keyboard.addListener('keyboardDidHide', () => {
+          setKeyboardVisible(false);
+        });
+      } catch (error) {
+        console.log('Capacitor Keyboard not available');
       }
     };
 
-    // Initial setup
-    initialWindowHeight.current = window.innerHeight;
-
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', updateToolbarPosition);
-      window.visualViewport.addEventListener('scroll', updateToolbarPosition);
-      // Initial call
-      requestAnimationFrame(updateToolbarPosition);
-    }
-
-    window.addEventListener('resize', updateToolbarPosition);
+    setupKeyboardListeners();
 
     return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', updateToolbarPosition);
-        window.visualViewport.removeEventListener('scroll', updateToolbarPosition);
-      }
-      window.removeEventListener('resize', updateToolbarPosition);
+      if (keyboardShowListener) keyboardShowListener.remove();
+      if (keyboardHideListener) keyboardHideListener.remove();
     };
   }, []);
 
@@ -711,15 +698,13 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const imageMedia = media.filter(m => m.type === 'image');
   const audioMedia = media.filter(m => m.type === 'audio');
 
-  // Toolbar height for content padding - only needed when keyboard is visible
+  // Toolbar height for content padding
   const toolbarHeight = 88; // character count bar (~24px) + toolbar (~64px)
-  // Reserve space at bottom for toolbar position (when keyboard is hidden)
-  const reservedBottomSpace = toolbarHeight;
 
   return (
     <div
       ref={containerRef}
-      className="h-full flex flex-col bg-white dark:bg-primary text-slate-900 dark:text-text-primary"
+      className="h-full flex flex-col bg-white dark:bg-primary text-slate-900 dark:text-text-primary overflow-hidden"
     >
       {/* Header - Editor toolbar */}
       <header className="flex-shrink-0 p-3 flex justify-between items-center border-b border-slate-200 dark:border-border-color bg-white dark:bg-primary z-20">
@@ -737,13 +722,13 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         </div>
       </header>
 
-      {/* Main Content Area - Scrollable, adjusts for keyboard */}
+      {/* Main Content Area - Scrollable */}
       <div
         ref={scrollableRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col"
-        style={{ paddingBottom: `${reservedBottomSpace + toolbarBottom}px` }}
+        className="flex-1 overflow-y-auto overflow-x-hidden"
+        style={{ paddingBottom: `${toolbarHeight}px` }}
       >
-        <div className="p-3 flex flex-col gap-3 flex-1">
+        <div className="p-3 flex flex-col gap-3 min-h-full">
           {/* Title Input */}
           <input
             type="text"
@@ -753,16 +738,16 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
             className="bg-transparent text-xl font-bold placeholder-slate-400 dark:placeholder-text-secondary focus:outline-none flex-shrink-0 p-3 border border-slate-200 dark:border-border-color rounded-lg"
           />
 
-          {/* Content Editor - Full height, fills all remaining space */}
+          {/* Content Editor - Full height */}
           <div
-            className="relative border border-slate-200 dark:border-border-color rounded-lg overflow-hidden flex-1 flex flex-col"
+            className="relative border border-slate-200 dark:border-border-color rounded-lg overflow-hidden flex-1 min-h-[300px]"
           >
             <div
               ref={contentRef}
               contentEditable
               onInput={handleContentInput}
-              className="bg-transparent text-slate-800 dark:text-text-primary focus:outline-none w-full p-3 flex-1"
-              style={{ wordWrap: 'break-word', overflowWrap: 'break-word', minHeight: '100%' }}
+              className="bg-transparent text-slate-800 dark:text-text-primary focus:outline-none w-full p-3 min-h-full"
+              style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
             />
             {!content.replace(/<[^>]*>?/gm, ' ').trim() && (
               <div
@@ -818,15 +803,15 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         </div>
       </div>
 
-      {/* Bottom Toolbar - Fixed position, attached to keyboard when visible */}
+      {/* Bottom Toolbar - Fixed at bottom of visible area */}
       <div
         ref={toolbarRef}
-        className="fixed left-0 right-0 bg-white dark:bg-primary border-t border-slate-200 dark:border-border-color z-50"
-        style={{
-          bottom: 0,
-          touchAction: 'none'
+        className="fixed left-0 right-0 bottom-0 bg-white dark:bg-primary border-t border-slate-200 dark:border-border-color z-50"
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => {
+          // Only prevent default if trying to scroll vertically on toolbar
+          e.stopPropagation();
         }}
-        onTouchMove={(e) => e.stopPropagation()}
       >
         {/* Character Count */}
         <div className="w-full text-right text-xs font-medium text-slate-500 dark:text-text-secondary px-3 py-1 border-b border-slate-200 dark:border-border-color">
@@ -834,8 +819,8 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         </div>
 
         {/* Formatting Toolbar */}
-        <footer className="w-full bg-slate-100 dark:bg-secondary" style={{ touchAction: 'none' }}>
-          <div className="max-w-full mx-auto h-16 flex justify-around items-center px-2 overflow-x-auto" style={{ touchAction: 'pan-x' }}>
+        <footer className="w-full bg-slate-100 dark:bg-secondary">
+          <div className="max-w-full mx-auto h-16 flex justify-around items-center px-2 overflow-x-auto overscroll-contain" style={{ touchAction: 'pan-x' }}>
             <div className="flex justify-around items-center min-w-max gap-1">
               <ToolbarButton onClick={() => handleStyleClick('bold')} icon="bold" label="Bold" isActive={activeStyles.has('bold')} />
               <ToolbarButton onClick={() => handleStyleClick('italic')} icon="italic" label="Italic" isActive={activeStyles.has('italic')} />
