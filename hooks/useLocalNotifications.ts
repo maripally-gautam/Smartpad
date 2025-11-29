@@ -10,6 +10,29 @@ interface UseLocalNotificationsConfig {
 }
 
 /**
+ * Generate a unique notification ID based on note ID hash and timestamp.
+ * This avoids collisions better than Math.random().
+ */
+function generateNotificationId(noteId: string): number {
+  // Simple hash function for the note ID combined with timestamp
+  let hash = 0;
+  for (let i = 0; i < noteId.length; i++) {
+    const char = noteId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash);
+}
+
+/**
+ * Helper function to remove the reminder from a note while preserving all other required fields.
+ */
+function removeReminderFromNote(note: Note): Note {
+  const { reminder: _, ...noteWithoutReminder } = note;
+  return noteWithoutReminder as Note;
+}
+
+/**
  * Helper function to compute the next reminder time for a repeating reminder.
  * Returns the updated reminder or undefined if the reminder should be removed.
  */
@@ -86,9 +109,7 @@ export function useLocalNotifications({
     if (nextReminder) {
       updateNoteRef.current({ ...note, reminder: nextReminder });
     } else {
-      // Remove the reminder from the note
-      const { reminder: _, ...noteWithoutReminder } = note;
-      updateNoteRef.current({ ...noteWithoutReminder, isPinned: note.isPinned, isFavourite: note.isFavourite, isCompleted: note.isCompleted });
+      updateNoteRef.current(removeReminderFromNote(note));
     }
   }, []);
 
@@ -125,7 +146,7 @@ export function useLocalNotifications({
             const textContent = note.content.replace(/<[^>]*>?/gm, ' ').trim();
             const snippet = textContent.substring(0, 100);
             notificationsToSchedule.push({
-              id: Math.floor(Math.random() * 10000),
+              id: generateNotificationId(note.id),
               title: note.title,
               body: snippet,
               schedule: { at: reminderTime },
@@ -163,13 +184,11 @@ export function useLocalNotifications({
               if (nextReminder) {
                 updateNoteRef.current({ ...note, reminder: nextReminder });
               } else {
-                const { reminder: _, ...noteWithoutReminder } = note;
-                updateNoteRef.current({ ...noteWithoutReminder, isPinned: note.isPinned, isFavourite: note.isFavourite, isCompleted: note.isCompleted });
+                updateNoteRef.current(removeReminderFromNote(note));
               }
             } else {
               // Remove the reminder from the note
-              const { reminder: _, ...noteWithoutReminder } = note;
-              updateNoteRef.current({ ...noteWithoutReminder, isPinned: note.isPinned, isFavourite: note.isFavourite, isCompleted: note.isCompleted });
+              updateNoteRef.current(removeReminderFromNote(note));
             }
             navigateRef.current('editor', noteId);
           }
