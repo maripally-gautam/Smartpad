@@ -59,17 +59,16 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onClick, onDelete, onTogglePi
   };
 
   return (
-    <div 
+    <div
       onClick={onClick}
       className={`relative bg-slate-100 dark:bg-secondary p-4 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-opacity-80 transition-all duration-200 active:scale-95 border-l-4 ${getBorderColorClass()}`}
     >
-      <button 
+      <button
         onClick={handleCompletedClick}
-        className={`absolute top-3 right-3 w-6 h-6 rounded-md flex items-center justify-center border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-secondary ${
-          note.isCompleted
-            ? 'bg-green-500 border-green-500 focus:ring-green-400'
-            : 'bg-transparent border-slate-400 dark:border-text-secondary hover:border-accent focus:ring-accent'
-        }`}
+        className={`absolute top-3 right-3 w-6 h-6 rounded-md flex items-center justify-center border-2 transition-all duration-200 outline-none ${note.isCompleted
+            ? 'bg-green-500 border-green-500'
+            : 'bg-transparent border-slate-400 dark:border-text-secondary hover:border-accent'
+          }`}
         aria-label={note.isCompleted ? "Mark as pending" : "Mark as completed"}
       >
         {note.isCompleted && <Icon name="check" className="w-4 h-4 text-white" />}
@@ -83,27 +82,27 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onClick, onDelete, onTogglePi
           <p className="text-xs text-slate-500 dark:text-text-secondary opacity-70">{formattedDate}</p>
         </div>
         <div className="flex items-center gap-1">
-            <button
-                onClick={handlePinClick}
-                className={`p-2 rounded-lg transition-colors ${note.isPinned ? 'text-accent' : 'text-slate-500 dark:text-text-secondary'} hover:bg-slate-200 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-accent/50`}
-                aria-label="Pin note"
-            >
-                <Icon name={note.isPinned ? 'pin-filled' : 'pin'} className="w-5 h-5" />
-            </button>
-            <button
-                onClick={handleFavouriteClick}
-                className={`p-2 rounded-lg transition-colors ${note.isFavourite ? 'text-yellow-500' : 'text-slate-500 dark:text-text-secondary'} hover:bg-slate-200 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-yellow-500/50`}
-                aria-label="Favourite note"
-            >
-                <Icon name={note.isFavourite ? 'star-filled' : 'star'} className="w-5 h-5" />
-            </button>
-            <button
-                onClick={handleDeleteClick}
-                className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                aria-label="Delete note"
-            >
-                <Icon name="trash" className="w-5 h-5" />
-            </button>
+          <button
+            onClick={handlePinClick}
+            className={`p-2 rounded-lg transition-colors outline-none ${note.isPinned ? 'text-accent' : 'text-slate-500 dark:text-text-secondary'} hover:bg-slate-200 dark:hover:bg-slate-700`}
+            aria-label="Pin note"
+          >
+            <Icon name={note.isPinned ? 'pin-filled' : 'pin'} className="w-5 h-5" />
+          </button>
+          <button
+            onClick={handleFavouriteClick}
+            className={`p-2 rounded-lg transition-colors outline-none ${note.isFavourite ? 'text-yellow-500' : 'text-slate-500 dark:text-text-secondary'} hover:bg-slate-200 dark:hover:bg-slate-700`}
+            aria-label="Favourite note"
+          >
+            <Icon name={note.isFavourite ? 'star-filled' : 'star'} className="w-5 h-5" />
+          </button>
+          <button
+            onClick={handleDeleteClick}
+            className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors outline-none"
+            aria-label="Delete note"
+          >
+            <Icon name="trash" className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </div>

@@ -7,19 +7,22 @@ import { Theme } from '../types';
 interface CapacitorSetupConfig {
   theme: Theme;
   canGoBack: () => boolean;
+  triggerBack: () => void;
 }
 
 /**
  * Hook to handle Capacitor setup: splash screen, status bar, and Android back button.
  * @param config - Configuration object with theme and canGoBack callback
  */
-export function useCapacitorSetup({ theme, canGoBack }: CapacitorSetupConfig): void {
+export function useCapacitorSetup({ theme, canGoBack, triggerBack }: CapacitorSetupConfig): void {
   const canGoBackRef = useRef(canGoBack);
-  
-  // Keep the ref up to date with the latest canGoBack function
+  const triggerBackRef = useRef(triggerBack);
+
+  // Keep the refs up to date with the latest functions
   useEffect(() => {
     canGoBackRef.current = canGoBack;
-  }, [canGoBack]);
+    triggerBackRef.current = triggerBack;
+  }, [canGoBack, triggerBack]);
 
   // Initialize Capacitor on mount (splash screen and back button listener)
   useEffect(() => {
@@ -32,7 +35,8 @@ export function useCapacitorSetup({ theme, canGoBack }: CapacitorSetupConfig): v
         if (!capacitorCanGoBack && !appCanGoBack) {
           CapacitorApp.exitApp();
         } else {
-          window.history.back();
+          // Use triggerBack to allow screens to intercept back navigation
+          triggerBackRef.current();
         }
       });
     };

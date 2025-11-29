@@ -132,11 +132,11 @@ const NotesListScreen: React.FC<NotesListScreenProps> = ({ onSelectNote, onDelet
             className="w-full bg-slate-100 dark:bg-secondary border-none rounded-full py-2 pl-10 pr-3 text-sm text-slate-800 dark:text-text-primary placeholder-slate-500 dark:placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
-        <div className="pt-2 flex justify-between items-center gap-2 text-xs">
+        <div className="pt-2 flex justify-between items-center gap-2 text-sm">
           <div className="relative" ref={sortDropdownRef}>
-            <button onClick={() => setIsSortOpen(!isSortOpen)} className="flex items-center gap-1 bg-slate-100 dark:bg-secondary px-3 py-1.5 rounded-full text-xs font-medium text-slate-700 dark:text-text-primary transition-colors hover:bg-slate-200 dark:hover:bg-opacity-80">
+            <button onClick={() => setIsSortOpen(!isSortOpen)} className="flex items-center gap-1 bg-slate-100 dark:bg-secondary px-3 py-1.5 rounded-full text-sm font-medium text-slate-700 dark:text-text-primary transition-colors hover:bg-slate-200 dark:hover:bg-opacity-80">
               <span>Order: {sortOptions.find(o => o.key === sortOrder)?.label}</span>
-              <Icon name="chevron-down" className={`w-3 h-3 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
+              <Icon name="chevron-down" className={`w-4 h-4 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
             </button>
             {isSortOpen && (
               <div className="absolute top-full mt-2 w-40 bg-white dark:bg-secondary rounded-lg shadow-lg z-20 overflow-hidden border border-slate-200 dark:border-border-color animate-fade-in-fast">
@@ -148,9 +148,9 @@ const NotesListScreen: React.FC<NotesListScreenProps> = ({ onSelectNote, onDelet
           </div>
 
           <div className="relative" ref={filterDropdownRef}>
-            <button onClick={() => setIsFilterOpen(!isFilterOpen)} className="flex items-center gap-1 bg-slate-100 dark:bg-secondary px-3 py-1.5 rounded-full text-xs font-medium text-slate-700 dark:text-text-primary transition-colors hover:bg-slate-200 dark:hover:bg-opacity-80">
+            <button onClick={() => setIsFilterOpen(!isFilterOpen)} className="flex items-center gap-1 bg-slate-100 dark:bg-secondary px-3 py-1.5 rounded-full text-sm font-medium text-slate-700 dark:text-text-primary transition-colors hover:bg-slate-200 dark:hover:bg-opacity-80">
               <span>Filter: {filterOptions.find(o => o.key === filter)?.label}</span>
-              <Icon name="filter" className="w-3 h-3" />
+              <Icon name="filter" className="w-4 h-4" />
             </button>
             {isFilterOpen && (
               <div className="absolute top-full right-0 mt-2 w-40 bg-white dark:bg-secondary rounded-lg shadow-lg z-20 overflow-hidden border border-slate-200 dark:border-border-color animate-fade-in-fast">

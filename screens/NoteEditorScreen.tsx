@@ -134,6 +134,7 @@ interface NoteEditorScreenProps {
   onUpdateNote: (note: Note) => void;
   onBack: () => void;
   onDelete: (noteId: string) => void;
+  registerBackHandler: (handler: (() => boolean) | null) => void;
 }
 
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -158,7 +159,7 @@ const requestAudioPermissions = async () => {
   }
 };
 
-const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpdateNote, onBack, onDelete }) => {
+const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpdateNote, onBack, onDelete, registerBackHandler }) => {
   const { settings } = useAppContext();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -259,6 +260,24 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       JSON.stringify(initialNoteRef.current.media) !== JSON.stringify(media) ||
       JSON.stringify(initialNoteRef.current.reminder) !== JSON.stringify(reminder);
   }, [title, media, reminder, settings.autoSave]);
+
+  // Register back handler for device back button
+  useEffect(() => {
+    const backHandler = () => {
+      if (noteHasChanged()) {
+        setIsUnsavedChangesModalOpen(true);
+        return true; // Block navigation
+      }
+      return false; // Allow navigation
+    };
+
+    registerBackHandler(backHandler);
+
+    // Cleanup: unregister when component unmounts
+    return () => {
+      registerBackHandler(null);
+    };
+  }, [noteHasChanged, registerBackHandler]);
 
   const createNoteObject = (): Note => ({
     id: note?.id || new Date().toISOString(),
@@ -470,12 +489,28 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     }
   };
 
-  const handleSave = () => onSave(createNoteObject());
-  const handleDeleteConfirm = () => { if (note) onDelete(note.id); setIsDeleteModalOpen(false); };
+  const handleSave = () => {
+    // Unregister back handler before saving to allow navigation
+    registerBackHandler(null);
+    onSave(createNoteObject());
+  };
+  const handleDeleteConfirm = () => {
+    // Unregister back handler before deleting to allow navigation
+    registerBackHandler(null);
+    if (note) onDelete(note.id);
+    setIsDeleteModalOpen(false);
+  };
 
   const handleBackPress = () => {
     if (noteHasChanged()) setIsUnsavedChangesModalOpen(true);
     else onBack();
+  };
+
+  const handleDiscard = () => {
+    // Unregister back handler before discarding to allow navigation
+    registerBackHandler(null);
+    setIsUnsavedChangesModalOpen(false);
+    onBack();
   };
 
   const handleTextToSpeech = () => {
@@ -582,11 +617,14 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 flex flex-col bg-white dark:bg-primary text-slate-900 dark:text-text-primary overflow-hidden"
+      className="h-full flex flex-col bg-white dark:bg-primary text-slate-900 dark:text-text-primary overflow-hidden"
     >
-      {/* Header - Fixed at top */}
+      {/* Header - Editor toolbar */}
       <header className="flex-shrink-0 p-3 flex justify-between items-center border-b border-slate-200 dark:border-border-color bg-white dark:bg-primary z-20">
-        <button onClick={handleBackPress} className="p-2 -ml-2"><Icon name="back" /></button>
+        <button onClick={handleBackPress} className="p-2 -ml-2 flex items-center gap-1 text-slate-600 dark:text-text-secondary hover:text-slate-900 dark:hover:text-text-primary">
+          <Icon name="back" />
+          <span className="text-sm font-medium">Back</span>
+        </button>
         <div className="flex items-center gap-2">
           <button onClick={handleTextToSpeech} className="p-2"><Icon name={isSpeaking ? 'stop' : 'tts'} /></button>
           <button onClick={() => setIsReminderModalOpen(true)} className={`p-2 ${reminder ? 'text-accent' : ''}`}>
@@ -736,7 +774,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         <p className="text-slate-600 dark:text-text-secondary mb-6">You have unsaved changes. Do you want to save them?</p>
         <div className="flex justify-end gap-2">
           <button onClick={() => setIsUnsavedChangesModalOpen(false)} className="px-5 py-2 rounded-full font-semibold hover:bg-slate-100 dark:hover:bg-border-color">Cancel</button>
-          <button onClick={() => { setIsUnsavedChangesModalOpen(false); onBack(); }} className="px-5 py-2 rounded-full font-semibold text-red-500 hover:bg-red-500/10">Discard</button>
+          <button onClick={handleDiscard} className="px-5 py-2 rounded-full font-semibold text-red-500 hover:bg-red-500/10">Discard</button>
           <button onClick={() => { setIsUnsavedChangesModalOpen(false); handleSave(); }} className="px-5 py-2 rounded-full bg-accent text-white font-semibold">Save</button>
         </div>
       </Modal>

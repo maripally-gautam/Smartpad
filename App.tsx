@@ -17,13 +17,13 @@ export default function App() {
   const [notes, setNotes] = useLocalStorage<Note[]>('notes', []);
   const [settings, setSettings] = useLocalStorage<Settings>('settings', INITIAL_SETTINGS);
 
-  const { currentScreen, selectedNoteId, navigate, goBack, canGoBack } = useNavigationHistory();
+  const { currentScreen, selectedNoteId, navigate, goBack, canGoBack, registerBackHandler, triggerBack } = useNavigationHistory();
 
   // Apply theme to document
   useTheme(settings.theme);
 
   // Setup Capacitor (splash screen, status bar, back button)
-  useCapacitorSetup({ theme: settings.theme, canGoBack });
+  useCapacitorSetup({ theme: settings.theme, canGoBack, triggerBack });
 
   // Handler to update a note (used by local notifications and editor)
   const handleUpdateNote = useCallback((noteToUpdate: Note) => {
@@ -151,6 +151,7 @@ export default function App() {
             onUpdateNote={handleUpdateNote}
             onBack={handleBack}
             onDelete={handleDeleteNoteFromEditor}
+            registerBackHandler={registerBackHandler}
           />
         );
       case 'settings':
