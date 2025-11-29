@@ -1,6 +1,10 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 import { Note, Reminder, Screen } from '../types';
+
+// Channel ID must match the one created in MainActivity.java
+const NOTIFICATION_CHANNEL_ID = 'smartpad_reminders';
 
 interface UseLocalNotificationsConfig {
   notes: Note[];
@@ -145,13 +149,25 @@ export function useLocalNotifications({
             // Schedule notification for future reminder
             const textContent = note.content.replace(/<[^>]*>?/gm, ' ').trim();
             const snippet = textContent.substring(0, 100);
-            notificationsToSchedule.push({
+
+            // Build notification config for heads-up display
+            const notificationConfig: any = {
               id: generateNotificationId(note.id),
               title: note.title,
-              body: snippet,
-              schedule: { at: reminderTime },
+              body: snippet || 'Reminder for your note',
+              schedule: { at: reminderTime, allowWhileIdle: true },
               extra: { noteId: note.id },
-            });
+              sound: 'default',
+              // Android specific options for heads-up notifications
+              autoCancel: true,
+            };
+
+            // Add Android-specific channel ID for heads-up notifications
+            if (Capacitor.getPlatform() === 'android') {
+              notificationConfig.channelId = NOTIFICATION_CHANNEL_ID;
+            }
+
+            notificationsToSchedule.push(notificationConfig);
           } else if (note.reminder.repeat && note.reminder.repeat !== 'none') {
             // If the time is in the past and it's repeating, schedule the next one
             updateNoteWithNextReminder(note, note.reminder);

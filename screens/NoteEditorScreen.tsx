@@ -5,6 +5,7 @@ import Modal from '../components/Modal';
 import { useAppContext } from '../context/AppContext';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { VoiceRecorder } from 'capacitor-voice-recorder';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 // -- MODAL COMPONENTS -- //
 
@@ -241,6 +242,17 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       }
     };
     checkPermissions();
+  }, []);
+
+  // Cleanup TTS when component unmounts
+  useEffect(() => {
+    return () => {
+      // Stop TTS when leaving the screen
+      TextToSpeech.stop().catch(() => { });
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
   }, []);
 
   const countCharacters = (htmlString: string) => {
@@ -513,17 +525,52 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     onBack();
   };
 
-  const handleTextToSpeech = () => {
-    if ('speechSynthesis' in window) {
+  const handleTextToSpeech = async () => {
+    try {
       if (isSpeaking) {
-        window.speechSynthesis.cancel(); setIsSpeaking(false);
+        // Stop speaking
+        await TextToSpeech.stop();
+        setIsSpeaking(false);
       } else {
-        const textToSpeak = title + ". " + contentRef.current?.innerText;
-        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
-        window.speechSynthesis.speak(utterance);
+        // Get text to speak - combine title and content
+        const textContent = contentRef.current?.innerText || '';
+        const textToSpeak = (title || 'Untitled Note') + '. ' + textContent;
+
+        if (!textToSpeak.trim() || textToSpeak.trim() === '.') {
+          alert('No content to read. Please add a title or description first.');
+          return;
+        }
+
         setIsSpeaking(true);
+
+        await TextToSpeech.speak({
+          text: textToSpeak,
+          lang: 'en-US',
+          rate: 1.0,
+          pitch: 1.0,
+          volume: 1.0,
+          category: 'ambient',
+        });
+
+        // Speech finished
+        setIsSpeaking(false);
+      }
+    } catch (error) {
+      console.error('Text-to-Speech error:', error);
+      setIsSpeaking(false);
+      // Fallback to Web Speech API if native TTS fails
+      if ('speechSynthesis' in window) {
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+        } else {
+          const textContent = contentRef.current?.innerText || '';
+          const textToSpeak = (title || 'Untitled Note') + '. ' + textContent;
+          const utterance = new SpeechSynthesisUtterance(textToSpeak);
+          utterance.onend = () => setIsSpeaking(false);
+          utterance.onerror = () => setIsSpeaking(false);
+          window.speechSynthesis.speak(utterance);
+          setIsSpeaking(true);
+        }
       }
     }
   };

@@ -32,6 +32,8 @@ const config: CapacitorConfig = {
     LocalNotifications: {
       smallIcon: "ic_stat_icon_config_sample",
       iconColor: "#488AFF",
+      // Use the custom channel we created with HIGH importance for heads-up notifications
+      sound: "default",
     }
   }
 };
