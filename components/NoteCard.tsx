@@ -13,7 +13,12 @@ interface NoteCardProps {
 }
 
 const NoteCard: React.FC<NoteCardProps> = ({ note, onClick, onDelete, onTogglePin, onToggleFavourite, onToggleCompleted }) => {
-  const textContent = note.content.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+  // Convert &nbsp; to regular spaces, strip HTML tags, and clean up whitespace
+  const textContent = note.content
+    .replace(/&nbsp;/g, ' ')
+    .replace(/<[^>]*>?/gm, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   const snippet = textContent.length > 100 ? textContent.substring(0, 100) + '...' : textContent;
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -66,8 +71,8 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onClick, onDelete, onTogglePi
       <button
         onClick={handleCompletedClick}
         className={`absolute top-3 right-3 w-6 h-6 rounded-md flex items-center justify-center border-2 transition-all duration-200 outline-none ${note.isCompleted
-            ? 'bg-green-500 border-green-500'
-            : 'bg-transparent border-slate-400 dark:border-text-secondary hover:border-accent'
+          ? 'bg-green-500 border-green-500'
+          : 'bg-transparent border-slate-400 dark:border-text-secondary hover:border-accent'
           }`}
         aria-label={note.isCompleted ? "Mark as pending" : "Mark as completed"}
       >

@@ -147,7 +147,12 @@ export function useLocalNotifications({
 
           if (reminderTime > now) {
             // Schedule notification for future reminder
-            const textContent = note.content.replace(/<[^>]*>?/gm, ' ').trim();
+            // Clean &nbsp; and HTML tags from content
+            const textContent = note.content
+              .replace(/&nbsp;/g, ' ')
+              .replace(/<[^>]*>?/gm, ' ')
+              .replace(/\s+/g, ' ')
+              .trim();
             const snippet = textContent.substring(0, 100);
 
             // Build notification config for heads-up display

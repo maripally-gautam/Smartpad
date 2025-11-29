@@ -291,10 +291,37 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     };
   }, [noteHasChanged, registerBackHandler]);
 
+  /**
+   * Sanitize HTML content before saving:
+   * - Convert &nbsp; to regular spaces
+   * - Remove trailing whitespace from content
+   * - Clean up multiple consecutive spaces
+   */
+  const sanitizeContent = (html: string): string => {
+    if (!html) return '';
+
+    // Replace &nbsp; with regular space
+    let sanitized = html.replace(/&nbsp;/g, ' ');
+
+    // Replace multiple consecutive spaces with single space (but preserve line breaks)
+    sanitized = sanitized.replace(/  +/g, ' ');
+
+    // Remove trailing spaces before closing tags
+    sanitized = sanitized.replace(/\s+(<\/[^>]+>)/g, '$1');
+
+    // Remove trailing spaces at the very end
+    sanitized = sanitized.replace(/\s+$/, '');
+
+    // Remove leading spaces at the very beginning
+    sanitized = sanitized.replace(/^\s+/, '');
+
+    return sanitized;
+  };
+
   const createNoteObject = (): Note => ({
     id: note?.id || new Date().toISOString(),
     title: title || 'Untitled Note',
-    content: contentRef.current?.innerHTML || '',
+    content: sanitizeContent(contentRef.current?.innerHTML || ''),
     media: media,
     lastModified: new Date().toISOString(),
     reminder: reminder,
@@ -634,9 +661,23 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       if (image.dataUrl) {
         setMedia(prev => [...prev, { id: new Date().toISOString(), type: 'image', src: image.dataUrl as string }]);
       }
-    } catch (error) {
-      console.error('Error taking picture:', error);
-      alert('Failed to capture image. Please check camera permissions.');
+    } catch (error: any) {
+      // Check if user cancelled the operation - don't show error in this case
+      const errorMessage = error?.message?.toLowerCase() || '';
+      const isCancelled =
+        errorMessage.includes('cancel') ||
+        errorMessage.includes('user denied') ||
+        errorMessage.includes('no image') ||
+        errorMessage.includes('user cancelled') ||
+        errorMessage.includes('dismissed') ||
+        error?.code === 'RESULT_CANCELED' ||
+        error === 'User cancelled photos app' ||
+        error === 'No image picked';
+
+      if (!isCancelled) {
+        console.error('Error taking picture:', error);
+        alert('Failed to capture image. Please check camera permissions.');
+      }
     }
     setIsImageChoiceModalOpen(false);
   };
