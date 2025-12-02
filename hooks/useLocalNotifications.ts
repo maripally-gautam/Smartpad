@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { LocalNotifications } from '@capacitor/local-notifications';
+import { LocalNotifications, ActionPerformed } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { Note, Reminder, Screen } from '../types';
 
@@ -14,22 +14,20 @@ interface UseLocalNotificationsConfig {
 }
 
 /**
- * Generate a unique notification ID based on note ID hash and timestamp.
- * This avoids collisions better than Math.random().
+ * Generate a unique notification ID based on note ID hash.
  */
 function generateNotificationId(noteId: string): number {
-  // Simple hash function for the note ID combined with timestamp
   let hash = 0;
   for (let i = 0; i < noteId.length; i++) {
     const char = noteId.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
+    hash = hash & hash;
   }
   return Math.abs(hash);
 }
 
 /**
- * Helper function to remove the reminder from a note while preserving all other required fields.
+ * Helper function to remove the reminder from a note.
  */
 function removeReminderFromNote(note: Note): Note {
   const { reminder: _, ...noteWithoutReminder } = note;
@@ -38,25 +36,24 @@ function removeReminderFromNote(note: Note): Note {
 
 /**
  * Helper function to compute the next reminder time for a repeating reminder.
- * Returns the updated reminder or undefined if the reminder should be removed.
  */
 function computeNextReminderTime(reminder: Reminder): Reminder | undefined {
   const now = new Date();
   let nextReminderTime = new Date(reminder.time);
 
-  // If invalid date, remove the reminder
   if (isNaN(nextReminderTime.getTime())) {
     return undefined;
   }
 
-  // If it's not a repeating reminder, return undefined to indicate removal
   if (!reminder.repeat || reminder.repeat === 'none') {
     return undefined;
   }
 
-  // Advance the date until it's in the future
   while (nextReminderTime <= now) {
     switch (reminder.repeat) {
+      case 'hourly':
+        nextReminderTime.setHours(nextReminderTime.getHours() + 1);
+        break;
       case 'daily':
         nextReminderTime.setDate(nextReminderTime.getDate() + 1);
         break;
@@ -70,7 +67,11 @@ function computeNextReminderTime(reminder: Reminder): Reminder | undefined {
         nextReminderTime.setFullYear(nextReminderTime.getFullYear() + 1);
         break;
       case 'custom':
-        nextReminderTime.setDate(nextReminderTime.getDate() + (reminder.customDays || 1));
+        const customDays = reminder.customDays || 0;
+        const customMinutes = reminder.customMinutes || 0;
+        const totalMinutes = (customDays * 24 * 60) + customMinutes;
+        const finalMinutes = totalMinutes < 5 ? 5 : totalMinutes;
+        nextReminderTime.setMinutes(nextReminderTime.getMinutes() + finalMinutes);
         break;
       default:
         return undefined;
@@ -81,8 +82,8 @@ function computeNextReminderTime(reminder: Reminder): Reminder | undefined {
 }
 
 /**
- * Hook to abstract all LocalNotifications logic.
- * Handles scheduling notifications, updating repeating reminders, and responding to notification actions.
+ * Hook to handle LocalNotifications.
+ * Simple notifications - tap to open the note.
  */
 export function useLocalNotifications({
   notes,
@@ -90,7 +91,6 @@ export function useLocalNotifications({
   updateNote,
   navigate,
 }: UseLocalNotificationsConfig): void {
-  // Keep refs to avoid stale closures in listeners
   const notesRef = useRef(notes);
   const updateNoteRef = useRef(updateNote);
   const navigateRef = useRef(navigate);
@@ -107,7 +107,6 @@ export function useLocalNotifications({
     navigateRef.current = navigate;
   }, [navigate]);
 
-  // Helper function to update note with next reminder
   const updateNoteWithNextReminder = useCallback((note: Note, reminder: Reminder) => {
     const nextReminder = computeNextReminderTime(reminder);
     if (nextReminder) {
@@ -117,7 +116,7 @@ export function useLocalNotifications({
     }
   }, []);
 
-  // Main effect to schedule notifications
+  // Schedule notifications
   useEffect(() => {
     if (!allowNotifications) return;
 
@@ -146,8 +145,7 @@ export function useLocalNotifications({
           const reminderTime = new Date(note.reminder.time);
 
           if (reminderTime > now) {
-            // Schedule notification for future reminder
-            // Clean &nbsp; and HTML tags from content
+            // Clean content for notification body
             const textContent = note.content
               .replace(/&nbsp;/g, ' ')
               .replace(/<[^>]*>?/gm, ' ')
@@ -155,7 +153,6 @@ export function useLocalNotifications({
               .trim();
             const snippet = textContent.substring(0, 100);
 
-            // Build notification config for heads-up display
             const notificationConfig: any = {
               id: generateNotificationId(note.id),
               title: note.title,
@@ -163,18 +160,17 @@ export function useLocalNotifications({
               schedule: { at: reminderTime, allowWhileIdle: true },
               extra: { noteId: note.id },
               sound: 'default',
-              // Android specific options for heads-up notifications
               autoCancel: true,
             };
 
-            // Add Android-specific channel ID for heads-up notifications
+            // Add Android channel
             if (Capacitor.getPlatform() === 'android') {
               notificationConfig.channelId = NOTIFICATION_CHANNEL_ID;
             }
 
             notificationsToSchedule.push(notificationConfig);
           } else if (note.reminder.repeat && note.reminder.repeat !== 'none') {
-            // If the time is in the past and it's repeating, schedule the next one
+            // Past time with repeat - schedule next occurrence
             updateNoteWithNextReminder(note, note.reminder);
           }
         }
@@ -188,33 +184,37 @@ export function useLocalNotifications({
     scheduleNotifications();
   }, [notes, allowNotifications, updateNoteWithNextReminder]);
 
-  // Set up notification action listener
+  // Handle notification tap - open the note
   useEffect(() => {
     if (!allowNotifications) return;
 
+    const handleNotificationAction = (notificationAction: ActionPerformed) => {
+      const noteId = notificationAction.notification.extra?.noteId;
+      if (!noteId) return;
+
+      const note = notesRef.current.find((n) => n.id === noteId);
+      if (!note) return;
+
+      // Handle repeating reminders
+      if (note.reminder?.repeat && note.reminder.repeat !== 'none') {
+        const nextReminder = computeNextReminderTime(note.reminder);
+        if (nextReminder) {
+          updateNoteRef.current({ ...note, reminder: nextReminder });
+        } else {
+          updateNoteRef.current(removeReminderFromNote(note));
+        }
+      } else {
+        // Non-repeating - remove reminder
+        updateNoteRef.current(removeReminderFromNote(note));
+      }
+
+      // Navigate to the note
+      navigateRef.current('editor', noteId);
+    };
+
     const listener = LocalNotifications.addListener(
       'localNotificationActionPerformed',
-      (notificationAction) => {
-        const noteId = notificationAction.notification.extra?.noteId;
-        if (noteId) {
-          const note = notesRef.current.find((n) => n.id === noteId);
-          if (note) {
-            // Reschedule if it's a repeating reminder
-            if (note.reminder?.repeat && note.reminder.repeat !== 'none') {
-              const nextReminder = computeNextReminderTime(note.reminder);
-              if (nextReminder) {
-                updateNoteRef.current({ ...note, reminder: nextReminder });
-              } else {
-                updateNoteRef.current(removeReminderFromNote(note));
-              }
-            } else {
-              // Remove the reminder from the note
-              updateNoteRef.current(removeReminderFromNote(note));
-            }
-            navigateRef.current('editor', noteId);
-          }
-        }
-      }
+      handleNotificationAction
     );
 
     return () => {

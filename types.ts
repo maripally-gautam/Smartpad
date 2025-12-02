@@ -8,12 +8,14 @@ export interface MediaAttachment {
   src: string;
 }
 
-export type ReminderRepeat = 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+export type ReminderRepeat = 'none' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
 
 export interface Reminder {
   time: string; // ISO string for date and time
   repeat: ReminderRepeat;
   customDays?: number;
+  customMinutes?: number; // For custom repeat intervals (minimum 5 minutes)
+  markAsCompleted?: boolean; // Mark note as completed when reminder fires
 }
 
 export interface Note {

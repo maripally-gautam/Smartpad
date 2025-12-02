@@ -109,7 +109,7 @@ export default function App() {
       setNotes((prevNotes) =>
         prevNotes.map((n) =>
           n.id === noteId
-            ? { ...n, isCompleted: !n.isCompleted, lastModified: new Date().toISOString() }
+            ? { ...n, isCompleted: !n.isCompleted }
             : n
         )
       );
@@ -130,7 +130,7 @@ export default function App() {
     setNotes((prevNotes) =>
       prevNotes.map((n) =>
         n.id === noteId
-          ? { ...n, isFavourite: !n.isFavourite, lastModified: new Date().toISOString() }
+          ? { ...n, isFavourite: !n.isFavourite }
           : n
       )
     );
@@ -179,6 +179,7 @@ export default function App() {
               currentScreen={currentScreen}
               onNavigate={handleNavigate}
               onNewNote={handleNewNote}
+              onTriggerBack={triggerBack}
             />
             <main className="flex-1 overflow-hidden relative flex flex-col">
               {renderScreen()}

@@ -6,6 +6,7 @@ interface TopNavBarProps {
   currentScreen: Screen;
   onNavigate: (screen: Screen) => void;
   onNewNote: () => void;
+  onTriggerBack?: () => void; // Optional: used to trigger back handler when in editor
 }
 
 const TopNavItem: React.FC<{
@@ -21,29 +22,50 @@ const TopNavItem: React.FC<{
   );
 };
 
-const TopNavBar: React.FC<TopNavBarProps> = ({ currentScreen, onNavigate, onNewNote }) => {
+const TopNavBar: React.FC<TopNavBarProps> = ({ currentScreen, onNavigate, onNewNote, onTriggerBack }) => {
+
+  // Handle navigation with potential unsaved changes check
+  const handleNavClick = (screen: Screen) => {
+    // If we're in editor and trying to navigate away, trigger the back handler first
+    if (currentScreen === 'editor' && screen !== 'editor' && onTriggerBack) {
+      onTriggerBack();
+      return;
+    }
+    onNavigate(screen);
+  };
+
+  // Handle new note with potential unsaved changes check
+  const handleNewNoteClick = () => {
+    // If we're in editor and trying to create a new note, trigger the back handler first
+    if (currentScreen === 'editor' && onTriggerBack) {
+      onTriggerBack();
+      return;
+    }
+    onNewNote();
+  };
+
   return (
     <header className="w-full bg-white dark:bg-secondary border-b border-slate-200 dark:border-border-color flex-shrink-0">
       <div className="max-w-md mx-auto h-14 flex justify-between items-center px-4">
         <div className="flex items-center gap-3">
-          <button onClick={() => onNavigate('list')} className="text-xl font-bold text-slate-800 dark:text-text-primary">
+          <button onClick={() => handleNavClick('list')} className="text-xl font-bold text-slate-800 dark:text-text-primary">
             Smartpad
           </button>
           <div className="flex items-center">
             <TopNavItem
               label="Notes"
               isActive={currentScreen === 'list'}
-              onClick={() => onNavigate('list')}
+              onClick={() => handleNavClick('list')}
             />
             <TopNavItem
               label="Settings"
               isActive={currentScreen === 'settings'}
-              onClick={() => onNavigate('settings')}
+              onClick={() => handleNavClick('settings')}
             />
           </div>
         </div>
         <button
-          onClick={onNewNote}
+          onClick={handleNewNoteClick}
           className="bg-accent text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md hover:bg-opacity-90 transition-transform active:scale-90 flex-shrink-0"
           aria-label="New Note"
         >

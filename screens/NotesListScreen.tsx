@@ -13,7 +13,7 @@ interface NotesListScreenProps {
 }
 
 type SortOrder = 'newest' | 'oldest' | 'az';
-type FilterType = 'all' | 'favourite' | 'completed' | 'pending';
+type FilterType = 'all' | 'favourite' | 'completed' | 'pending' | 'with-reminder' | 'without-reminder';
 
 const NotesListScreen: React.FC<NotesListScreenProps> = ({ onSelectNote, onDeleteNote, onTogglePin, onToggleFavourite, onToggleCompleted }) => {
   const { notes } = useAppContext();
@@ -66,6 +66,12 @@ const NotesListScreen: React.FC<NotesListScreenProps> = ({ onSelectNote, onDelet
       case 'pending':
         filteredNotes = searchedNotes.filter(note => !note.isCompleted);
         break;
+      case 'with-reminder':
+        filteredNotes = searchedNotes.filter(note => note.reminder);
+        break;
+      case 'without-reminder':
+        filteredNotes = searchedNotes.filter(note => !note.reminder);
+        break;
       case 'all':
       default:
         filteredNotes = searchedNotes;
@@ -117,6 +123,8 @@ const NotesListScreen: React.FC<NotesListScreenProps> = ({ onSelectNote, onDelet
     { key: 'favourite', label: 'Favourites' },
     { key: 'pending', label: 'Pending' },
     { key: 'completed', label: 'Completed' },
+    { key: 'with-reminder', label: 'With Reminder' },
+    { key: 'without-reminder', label: 'No Reminder' },
   ];
 
   return (

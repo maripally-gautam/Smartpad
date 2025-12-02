@@ -13,6 +13,9 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Register custom plugins before calling super.onCreate
+        registerPlugin(SmartpadNotificationsPlugin.class);
+
         super.onCreate(savedInstanceState);
 
         // Create notification channel for Android 8.0+

@@ -7,6 +7,8 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { VoiceRecorder } from 'capacitor-voice-recorder';
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
 import { Keyboard } from '@capacitor/keyboard';
+import { SpeechRecognition } from '@capacitor-community/speech-recognition';
+import { Capacitor } from '@capacitor/core';
 
 // -- MODAL COMPONENTS -- //
 
@@ -27,7 +29,9 @@ const ReminderModal: React.FC<{
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [repeat, setRepeat] = useState<Reminder['repeat']>('none');
-  const [customDays, setCustomDays] = useState(1);
+  const [customDays, setCustomDays] = useState(0);
+  const [customMinutes, setCustomMinutes] = useState(30);
+  const [markAsCompleted, setMarkAsCompleted] = useState(false);
 
   useEffect(() => {
     if (reminder) {
@@ -35,8 +39,10 @@ const ReminderModal: React.FC<{
       setDate(d.toISOString().split('T')[0]);
       setTime(d.toTimeString().substring(0, 5));
       setRepeat(reminder.repeat);
+      setMarkAsCompleted(reminder.markAsCompleted || false);
       if (reminder.repeat === 'custom') {
-        setCustomDays(reminder.customDays || 1);
+        setCustomDays(reminder.customDays || 0);
+        setCustomMinutes(reminder.customMinutes || 30);
       }
     } else {
       const d = new Date();
@@ -44,6 +50,9 @@ const ReminderModal: React.FC<{
       setDate(d.toISOString().split('T')[0]);
       setTime(d.toTimeString().substring(0, 5));
       setRepeat('none');
+      setCustomDays(0);
+      setCustomMinutes(30);
+      setMarkAsCompleted(false);
     }
   }, [reminder]);
 
@@ -55,10 +64,14 @@ const ReminderModal: React.FC<{
     const newReminder: Reminder = {
       time: reminderDate.toISOString(),
       repeat,
+      markAsCompleted,
     };
 
     if (repeat === 'custom') {
-      newReminder.customDays = customDays > 0 ? customDays : 1;
+      // Ensure minimum of 5 minutes if days is 0
+      const finalMinutes = customDays === 0 && customMinutes < 5 ? 5 : customMinutes;
+      newReminder.customDays = customDays >= 0 ? customDays : 0;
+      newReminder.customMinutes = finalMinutes;
     }
 
     onSave(newReminder);
@@ -70,6 +83,9 @@ const ReminderModal: React.FC<{
     onClose();
   }
 
+  // Validate custom interval - minimum 5 minutes when days is 0
+  const getMinMinutes = () => customDays === 0 ? 5 : 0;
+
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
@@ -78,6 +94,7 @@ const ReminderModal: React.FC<{
       </div>
       <select value={repeat} onChange={e => setRepeat(e.target.value as any)} className="w-full bg-slate-100 dark:bg-border-color p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent">
         <option value="none">Does not repeat</option>
+        <option value="hourly">Hourly</option>
         <option value="daily">Daily</option>
         <option value="weekly">Weekly</option>
         <option value="monthly">Monthly</option>
@@ -85,18 +102,44 @@ const ReminderModal: React.FC<{
         <option value="custom">Custom</option>
       </select>
       {repeat === 'custom' && (
-        <div className="flex items-center gap-2">
-          <span className="text-slate-600 dark:text-text-secondary">Repeat every</span>
-          <input
-            type="number"
-            value={customDays}
-            onChange={e => setCustomDays(parseInt(e.target.value, 10))}
-            className="w-20 bg-slate-100 dark:bg-border-color p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-            min="1"
-          />
-          <span className="text-slate-600 dark:text-text-secondary">days</span>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-slate-600 dark:text-text-secondary">Repeat every</span>
+            <input
+              type="number"
+              value={customDays}
+              onChange={e => setCustomDays(Math.max(0, parseInt(e.target.value, 10) || 0))}
+              className="w-16 bg-slate-100 dark:bg-border-color p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-center"
+              min="0"
+            />
+            <span className="text-slate-600 dark:text-text-secondary">days</span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-slate-600 dark:text-text-secondary">and</span>
+            <input
+              type="number"
+              value={customMinutes}
+              onChange={e => setCustomMinutes(Math.max(getMinMinutes(), parseInt(e.target.value, 10) || 0))}
+              className="w-16 bg-slate-100 dark:bg-border-color p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-center"
+              min={getMinMinutes()}
+            />
+            <span className="text-slate-600 dark:text-text-secondary">minutes</span>
+          </div>
+          {customDays === 0 && customMinutes < 5 && (
+            <p className="text-xs text-amber-500">Minimum interval is 5 minutes</p>
+          )}
         </div>
       )}
+      {/* Mark as completed checkbox */}
+      <label className="flex items-center gap-3 p-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={markAsCompleted}
+          onChange={e => setMarkAsCompleted(e.target.checked)}
+          className="w-5 h-5 rounded border-2 border-slate-400 dark:border-text-secondary accent-accent"
+        />
+        <span className="text-slate-700 dark:text-text-primary">Mark as completed after notification</span>
+      </label>
       <div className="flex justify-between items-center pt-4">
         {reminder && <button onClick={handleDeleteAndClose} className="text-red-500 font-semibold">Delete</button>}
         <div className="flex gap-2 ml-auto">
@@ -139,14 +182,18 @@ interface NoteEditorScreenProps {
   registerBackHandler: (handler: (() => boolean) | null) => void;
 }
 
-const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+// Web Speech API for browser fallback
+const WebSpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+const webRecognition = WebSpeechRecognition ? new WebSpeechRecognition() : null;
 
-if (recognition) {
-  recognition.continuous = true;
-  recognition.interimResults = false; // Changed to false to prevent duplicates
-  recognition.maxAlternatives = 1;
+if (webRecognition) {
+  webRecognition.continuous = true;
+  webRecognition.interimResults = false;
+  webRecognition.maxAlternatives = 1;
 }
+
+// Check if we should use native speech recognition
+const useNativeSpeechRecognition = Capacitor.isNativePlatform();
 
 type Alignment = 'justify' | 'left' | 'right' | 'center';
 
@@ -159,6 +206,15 @@ const requestAudioPermissions = async () => {
     console.error('Error requesting audio permission:', error);
     return false;
   }
+};
+
+const getCommonPrefixLength = (a: string, b: string) => {
+  const max = Math.min(a.length, b.length);
+  let idx = 0;
+  while (idx < max && a[idx] === b[idx]) {
+    idx += 1;
+  }
+  return idx;
 };
 
 const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpdateNote, onBack, onDelete, registerBackHandler }) => {
@@ -187,6 +243,11 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const contentRef = useRef<HTMLDivElement>(null);
   const initialNoteRef = useRef<Note | null>(null);
   const recognitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const shouldKeepListeningRef = useRef<boolean>(false);
+  const activeLanguageRef = useRef<string>('en-US');
+  const lastNativeTranscriptRef = useRef<string>('');
+  const lastWebTranscriptRef = useRef<string>('');
+  const nativeRestartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollableRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -223,13 +284,28 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
 
   // Auto-focus the content area when the component mounts to show keyboard
   useEffect(() => {
-    // Small delay to ensure the component is fully rendered
-    const timer = setTimeout(() => {
-      if (contentRef.current) {
-        contentRef.current.focus();
-      }
-    }, 100);
-    return () => clearTimeout(timer);
+    // Wait for layout to stabilize before focusing
+    // Use multiple requestAnimationFrame calls to ensure DOM is fully ready
+    let rafId: number;
+    let timer: NodeJS.Timeout;
+
+    const focusContent = () => {
+      rafId = requestAnimationFrame(() => {
+        rafId = requestAnimationFrame(() => {
+          if (contentRef.current) {
+            contentRef.current.focus();
+          }
+        });
+      });
+    };
+
+    // Delay to ensure screen transition is complete
+    timer = setTimeout(focusContent, 300);
+
+    return () => {
+      clearTimeout(timer);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   // Check permissions on mount
@@ -243,13 +319,24 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     checkPermissions();
   }, []);
 
-  // Cleanup TTS when component unmounts
+  // Cleanup TTS and Speech Recognition when component unmounts
   useEffect(() => {
     return () => {
       // Stop TTS when leaving the screen
       TextToSpeech.stop().catch(() => { });
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
+      }
+      // Stop speech recognition when leaving the screen
+      shouldKeepListeningRef.current = false;
+      if (useNativeSpeechRecognition) {
+        SpeechRecognition.stop().catch(() => { });
+      } else if (webRecognition) {
+        try {
+          webRecognition.stop();
+        } catch (error) {
+          // Ignore errors during cleanup
+        }
       }
     };
   }, []);
@@ -390,10 +477,97 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     };
   }, [updateToolbarState]);
 
-  useEffect(() => {
-    if (!recognition) return;
+  // Track the last transcript we received to detect duplicates
+  const lastTranscriptRef = useRef<string>('');
 
-    recognition.onresult = (event: any) => {
+  // Native speech recognition with partialResults: true for real-time transcription
+  // This gives us text as user speaks, not after they stop
+  useEffect(() => {
+    if (!useNativeSpeechRecognition) return;
+
+    let partialResultsListener: any = null;
+    let listeningStateListener: any = null;
+
+    const setupListeners = async () => {
+      // Listen for partial results - this fires as user speaks
+      partialResultsListener = await SpeechRecognition.addListener(
+        'partialResults',
+        (data: { matches: string[] }) => {
+          if (!data.matches || data.matches.length === 0) return;
+          if (!shouldKeepListeningRef.current) return;
+          if (!contentRef.current) return;
+
+          const fullTranscript = (data.matches[0] || '').trim();
+
+          // Skip if empty or same as last
+          if (!fullTranscript || fullTranscript === lastTranscriptRef.current) return;
+
+          const lastTranscript = lastTranscriptRef.current;
+
+          // Only add text if the new transcript is longer and starts with the old one
+          // This ensures we only add NEW characters, never repeat
+          if (fullTranscript.length > lastTranscript.length && fullTranscript.startsWith(lastTranscript)) {
+            const newText = fullTranscript.slice(lastTranscript.length);
+
+            if (newText) {
+              contentRef.current.focus();
+              document.execCommand('insertText', false, newText);
+              const html = contentRef.current.innerHTML;
+              setContent(html);
+              setCharacterCount(countCharacters(html));
+
+              // Update tracking
+              lastTranscriptRef.current = fullTranscript;
+            }
+          } else if (lastTranscript === '') {
+            // First transcript of the session
+            contentRef.current.focus();
+            document.execCommand('insertText', false, fullTranscript);
+            const html = contentRef.current.innerHTML;
+            setContent(html);
+            setCharacterCount(countCharacters(html));
+            lastTranscriptRef.current = fullTranscript;
+          }
+          // If transcript got shorter or is completely different, ignore it (it's a correction we don't handle)
+        }
+      );
+
+      // Listen for state changes - when Android stops due to silence
+      // Update UI IMMEDIATELY when state changes - no delays
+      listeningStateListener = await SpeechRecognition.addListener(
+        'listeningState',
+        (state: { status: string }) => {
+          // Immediate state update - no async, no delays
+          if (state.status === 'stopped') {
+            shouldKeepListeningRef.current = false;
+            setIsListening(false);
+          } else if (state.status === 'started') {
+            // Confirm listening started
+            setIsListening(true);
+          }
+        }
+      );
+    };
+
+    setupListeners();
+
+    return () => {
+      if (partialResultsListener) {
+        partialResultsListener.remove();
+      }
+      if (listeningStateListener) {
+        listeningStateListener.remove();
+      }
+    };
+  }, []);
+
+  // Ref to track if we should keep listening (for auto-restart)
+
+  // Web Speech API fallback for browser
+  useEffect(() => {
+    if (useNativeSpeechRecognition || !webRecognition) return;
+
+    webRecognition.onresult = (event: any) => {
       // Clear any existing timeout
       if (recognitionTimeoutRef.current) {
         clearTimeout(recognitionTimeoutRef.current);
@@ -407,19 +581,36 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       }
 
       if (finalTranscript && contentRef.current) {
-        contentRef.current.focus();
-        document.execCommand('insertText', false, finalTranscript);
-        handleContentInput();
+        const previous = lastWebTranscriptRef.current;
+        let addition = finalTranscript;
+
+        if (finalTranscript.startsWith(previous)) {
+          addition = finalTranscript.slice(previous.length);
+        } else if (previous.startsWith(finalTranscript)) {
+          addition = '';
+        } else {
+          const overlap = getCommonPrefixLength(previous, finalTranscript);
+          addition = finalTranscript.slice(overlap);
+        }
+
+        if (addition.trim()) {
+          contentRef.current.focus();
+          document.execCommand('insertText', false, addition);
+          const html = contentRef.current.innerHTML;
+          setContent(html);
+          setCharacterCount(countCharacters(html));
+          lastWebTranscriptRef.current = finalTranscript.trim();
+        }
       }
 
       // Restart recognition after a pause
       recognitionTimeoutRef.current = setTimeout(() => {
-        if (isListening && recognition) {
+        if (isListening && webRecognition) {
           try {
-            recognition.stop();
+            webRecognition.stop();
             setTimeout(() => {
               if (isListening) {
-                recognition.start();
+                webRecognition.start();
               }
             }, 100);
           } catch (error) {
@@ -429,15 +620,15 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       }, 1000);
     };
 
-    recognition.onerror = (event: any) => {
+    webRecognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
       if (event.error === 'no-speech' || event.error === 'audio-capture') {
         // Don't show alert for these common errors, just restart
         if (isListening) {
           setTimeout(() => {
             try {
-              if (recognition && isListening) {
-                recognition.start();
+              if (webRecognition && isListening) {
+                webRecognition.start();
               }
             } catch (error) {
               console.log('Restart error:', error);
@@ -449,13 +640,13 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       }
     };
 
-    recognition.onend = () => {
+    webRecognition.onend = () => {
       // Auto-restart if still listening
       if (isListening) {
         setTimeout(() => {
           try {
-            if (recognition && isListening) {
-              recognition.start();
+            if (webRecognition && isListening) {
+              webRecognition.start();
             }
           } catch (error) {
             console.log('Auto-restart error:', error);
@@ -468,9 +659,9 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       if (recognitionTimeoutRef.current) {
         clearTimeout(recognitionTimeoutRef.current);
       }
-      if (recognition && isListening) {
+      if (webRecognition && isListening) {
         try {
-          recognition.stop();
+          webRecognition.stop();
         } catch (error) {
           console.log('Cleanup error:', error);
         }
@@ -479,48 +670,105 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   }, [isListening]);
 
   const startListening = async (lang: string) => {
-    if (!recognition) {
-      alert('Speech recognition is not supported in this browser.');
-      return;
-    }
-
-    const hasPermission = await requestAudioPermissions();
-    if (!hasPermission) {
-      alert('Microphone permission denied. Please enable it in settings.');
-      return;
-    }
-
     setIsLanguageModalOpen(false);
-
-    // Stop if already listening
-    if (isListening) {
+    activeLanguageRef.current = lang;    // Request speech recognition permission for native
+    if (useNativeSpeechRecognition) {
       try {
-        recognition.stop();
+        const permissionStatus = await SpeechRecognition.requestPermissions();
+        if (permissionStatus.speechRecognition !== 'granted') {
+          alert('Speech recognition permission denied. Please enable it in settings.');
+          return;
+        }
+
+        // Check if speech recognition is available
+        const available = await SpeechRecognition.available();
+        if (!available.available) {
+          alert('Speech recognition is not available on this device.');
+          return;
+        }
+
+        // Stop if already listening
+        if (isListening) {
+          shouldKeepListeningRef.current = false;
+          await SpeechRecognition.stop();
+        }
+
+        // Reset tracking ref for new session
+        lastTranscriptRef.current = '';
+
+        // Set flag and UI state BEFORE starting - instant visual feedback
+        shouldKeepListeningRef.current = true;
+        setIsListening(true);
+
+        // Start with partialResults: true for real-time transcription
+        await SpeechRecognition.start({
+          language: lang,
+          partialResults: true,
+          popup: false,
+          maxResults: 1,
+        });
       } catch (error) {
-        console.log('Stop error:', error);
+        console.error('Failed to start native speech recognition:', error);
+        alert('Failed to start speech recognition');
+        setIsListening(false);
       }
-    }
+    } else {
+      // Fallback to Web Speech API for browser
+      if (!webRecognition) {
+        alert('Speech recognition is not supported in this browser.');
+        return;
+      }
 
-    recognition.lang = lang;
+      const hasPermission = await requestAudioPermissions();
+      if (!hasPermission) {
+        alert('Microphone permission denied. Please enable it in settings.');
+        return;
+      }
 
-    try {
-      setIsListening(true);
-      recognition.start();
-    } catch (error) {
-      console.error('Failed to start listening:', error);
-      alert('Failed to start speech recognition');
-      setIsListening(false);
+      // Stop if already listening
+      if (isListening) {
+        try {
+          webRecognition.stop();
+        } catch (error) {
+          console.log('Stop error:', error);
+        }
+      }
+
+      webRecognition.lang = lang;
+      lastWebTranscriptRef.current = '';
+
+      try {
+        setIsListening(true);
+        webRecognition.start();
+      } catch (error) {
+        console.error('Failed to start listening:', error);
+        alert('Failed to start speech recognition');
+        setIsListening(false);
+      }
     }
   };
 
-  const stopListening = () => {
+  const stopListening = async () => {
+    // Set state IMMEDIATELY - instant visual feedback
     setIsListening(false);
+    shouldKeepListeningRef.current = false;
+    lastNativeTranscriptRef.current = '';
+    lastWebTranscriptRef.current = '';
+    lastTranscriptRef.current = '';
+
     if (recognitionTimeoutRef.current) {
       clearTimeout(recognitionTimeoutRef.current);
     }
-    if (recognition) {
+
+    if (useNativeSpeechRecognition) {
       try {
-        recognition.stop();
+        await SpeechRecognition.stop();
+      } catch (error) {
+        console.log('Native stop error:', error);
+      }
+    } else if (webRecognition) {
+      try {
+        webRecognition.stop();
       } catch (error) {
         console.log('Stop error:', error);
       }
@@ -528,11 +776,15 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   };
 
   const handleSave = () => {
+    // Stop any active listening/recording before navigating
+    if (isListening) stopListening();
     // Unregister back handler before saving to allow navigation
     registerBackHandler(null);
     onSave(createNoteObject());
   };
   const handleDeleteConfirm = () => {
+    // Stop any active listening/recording before navigating
+    if (isListening) stopListening();
     // Unregister back handler before deleting to allow navigation
     registerBackHandler(null);
     if (note) onDelete(note.id);
@@ -541,10 +793,16 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
 
   const handleBackPress = () => {
     if (noteHasChanged()) setIsUnsavedChangesModalOpen(true);
-    else onBack();
+    else {
+      // Stop any active listening before navigating
+      if (isListening) stopListening();
+      onBack();
+    }
   };
 
   const handleDiscard = () => {
+    // Stop any active listening before discarding
+    if (isListening) stopListening();
     // Unregister back handler before discarding to allow navigation
     registerBackHandler(null);
     setIsUnsavedChangesModalOpen(false);
@@ -690,10 +948,19 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   };
 
   const ToolbarButton: React.FC<{ onClick: () => void; icon: string; label: string; isActive?: boolean; }> = ({ onClick, icon, label, isActive }) => (
-    <button onClick={onClick} className={`flex flex-col items-center justify-center p-2 text-xs w-16 h-16 transition-colors duration-200 focus:outline-none ${isActive ? 'text-accent' : 'text-slate-600 dark:text-text-secondary hover:text-slate-900 dark:hover:text-text-primary'}`} aria-label={label}>
+    <button onClick={onClick} className={`flex flex-col items-center justify-center p-2 text-xs w-16 h-16 transition-colors duration-75 focus:outline-none ${isActive ? 'text-accent' : 'text-slate-600 dark:text-text-secondary hover:text-slate-900 dark:hover:text-text-primary'}`} aria-label={label}>
       <Icon name={icon} className="w-5 h-5 mb-1" /> <span>{label}</span>
     </button>
   );
+
+  // Simple tap handler for speech-to-text button
+  const handleSpeechButtonClick = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      setIsLanguageModalOpen(true);
+    }
+  };
 
   const imageMedia = media.filter(m => m.type === 'image');
   const audioMedia = media.filter(m => m.type === 'audio');
@@ -713,7 +980,31 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
           <span className="text-sm font-medium">Back</span>
         </button>
         <div className="flex items-center gap-2">
-          <button onClick={handleTextToSpeech} className="p-2"><Icon name={isSpeaking ? 'stop' : 'tts'} /></button>
+          {/* Speech-to-Text button - WhatsApp style circular mic button */}
+          <button
+            onClick={handleSpeechButtonClick}
+            className="relative flex items-center justify-center w-10 h-10"
+          >
+            {/* Pulse rings - only render when listening, instant sync */}
+            <span
+              className={`absolute inset-0 rounded-full bg-accent transition-opacity duration-100 ${isListening ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+              style={{
+                animation: isListening ? 'pulse-ring 1s ease-out infinite' : 'none',
+                transform: 'scale(1)'
+              }}
+            />
+            <span
+              className={`absolute inset-0 rounded-full bg-accent transition-opacity duration-100 ${isListening ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+              style={{
+                animation: isListening ? 'pulse-ring 1s ease-out infinite 0.3s' : 'none',
+                transform: 'scale(1)'
+              }}
+            />
+            {/* Main circular button - always visible */}
+            <div className="relative w-10 h-10 rounded-full bg-accent flex items-center justify-center z-10">
+              <Icon name="mic" className="w-5 h-5 text-white" />
+            </div>
+          </button>
           <button onClick={() => setIsReminderModalOpen(true)} className={`p-2 ${reminder ? 'text-accent' : ''}`}>
             <Icon name={reminder ? 'reminder-active' : 'reminder'} />
           </button>
@@ -722,14 +1013,14 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         </div>
       </header>
 
-      {/* Main Content Area - Scrollable */}
+      {/* Main Content Area - Non-scrollable container */}
       <div
         ref={scrollableRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden"
+        className="flex-1 flex flex-col overflow-hidden"
         style={{ paddingBottom: `${toolbarHeight}px` }}
       >
-        <div className="p-3 flex flex-col gap-3 min-h-full">
-          {/* Title Input */}
+        <div className="p-3 flex flex-col gap-3 flex-1 overflow-hidden">
+          {/* Title Input - Fixed, not scrollable */}
           <input
             type="text"
             value={title}
@@ -738,15 +1029,15 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
             className="bg-transparent text-xl font-bold placeholder-slate-400 dark:placeholder-text-secondary focus:outline-none flex-shrink-0 p-3 border border-slate-200 dark:border-border-color rounded-lg"
           />
 
-          {/* Content Editor - Full height */}
+          {/* Content Editor - Scrollable with slim scrollbar */}
           <div
-            className="relative border border-slate-200 dark:border-border-color rounded-lg overflow-hidden flex-1 min-h-[300px]"
+            className="relative border border-slate-200 dark:border-border-color rounded-lg flex-1 min-h-0 overflow-hidden"
           >
             <div
               ref={contentRef}
               contentEditable
               onInput={handleContentInput}
-              className="bg-transparent text-slate-800 dark:text-text-primary focus:outline-none w-full p-3 min-h-full"
+              className="bg-transparent text-slate-800 dark:text-text-primary focus:outline-none w-full h-full p-3 overflow-y-auto scrollbar-thin"
               style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
             />
             {!content.replace(/<[^>]*>?/gm, ' ').trim() && (
@@ -759,45 +1050,50 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
             )}
           </div>
 
-          {/* Image Media Grid */}
-          {imageMedia.length > 0 && (
-            <div className="flex-shrink-0">
-              <div className="grid grid-cols-3 gap-2">
-                {imageMedia.map(item => (
-                  <div key={item.id} className="relative aspect-square">
-                    {/* Image - clickable to open preview */}
-                    <img
-                      src={item.src}
-                      alt="attachment"
-                      className="rounded-lg w-full h-full object-cover cursor-pointer"
-                      onClick={() => setSelectedImage(item)}
-                    />
-                    {/* Delete button - always visible */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteMedia(item.id);
-                      }}
-                      className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg z-10"
-                      aria-label="Remove image"
-                    >
-                      <Icon name="plus" className="w-4 h-4 transform rotate-45" />
-                    </button>
+          {/* Media Section - Scrollable if present */}
+          {(imageMedia.length > 0 || audioMedia.length > 0) && (
+            <div className="flex-shrink-0 max-h-40 overflow-y-auto scrollbar-thin">
+              {/* Image Media Grid */}
+              {imageMedia.length > 0 && (
+                <div className="mb-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    {imageMedia.map(item => (
+                      <div key={item.id} className="relative aspect-square">
+                        {/* Image - clickable to open preview */}
+                        <img
+                          src={item.src}
+                          alt="attachment"
+                          className="rounded-lg w-full h-full object-cover cursor-pointer"
+                          onClick={() => setSelectedImage(item)}
+                        />
+                        {/* Delete button - always visible */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteMedia(item.id);
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg z-10"
+                          aria-label="Remove image"
+                        >
+                          <Icon name="plus" className="w-4 h-4 transform rotate-45" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Audio Media List */}
-          {audioMedia.length > 0 && (
-            <div className="flex-shrink-0 space-y-2">
-              {audioMedia.map(item => (
-                <div key={item.id} className="relative group flex items-center gap-2 bg-slate-100 dark:bg-secondary p-2 rounded-lg">
-                  <audio controls src={item.src} className="w-full h-8" />
-                  <button onClick={() => handleDeleteMedia(item.id)} className="flex-shrink-0 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Remove media"><Icon name="plus" className="w-3 h-3 transform rotate-45" /></button>
                 </div>
-              ))}
+              )}
+
+              {/* Audio Media List */}
+              {audioMedia.length > 0 && (
+                <div className="space-y-2">
+                  {audioMedia.map(item => (
+                    <div key={item.id} className="relative group flex items-center gap-2 bg-slate-100 dark:bg-secondary p-2 rounded-lg">
+                      <audio controls src={item.src} className="w-full h-8" />
+                      <button onClick={() => handleDeleteMedia(item.id)} className="flex-shrink-0 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Remove media"><Icon name="plus" className="w-3 h-3 transform rotate-45" /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -829,7 +1125,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
               <ToolbarButton onClick={() => setIsFontSizeModalOpen(true)} icon="fontSize" label="Size" />
               <div className="w-px h-10 bg-slate-300 dark:bg-border-color"></div>
               <ToolbarButton onClick={() => setIsImageChoiceModalOpen(true)} icon="image" label="Image" />
-              <ToolbarButton onClick={isListening ? stopListening : () => setIsLanguageModalOpen(true)} icon="like" label="Speak" isActive={isListening} />
+              <ToolbarButton onClick={handleTextToSpeech} icon={isSpeaking ? 'stop' : 'tts'} label={isSpeaking ? 'Stop' : 'Read'} isActive={isSpeaking} />
               <ToolbarButton onClick={handleRecordVoice} icon="mic" label="Record" isActive={isRecording} />
             </div>
           </div>

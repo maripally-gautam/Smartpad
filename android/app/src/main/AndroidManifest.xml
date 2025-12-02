@@ -25,6 +25,21 @@
 
         </activity>
 
+        <!-- Receiver for handling notification actions without opening the app -->
+        <receiver
+            android:name=".NotificationActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.smartpad.app.ACTION_SNOOZE" />
+                <action android:name="com.smartpad.app.ACTION_MARK_COMPLETE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Receiver for publishing scheduled notifications -->
+        <receiver
+            android:name=".NotificationPublisher"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

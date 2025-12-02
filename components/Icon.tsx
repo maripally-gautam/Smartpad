@@ -45,6 +45,7 @@ const icons: { [key: string]: React.ReactElement } = {
   check: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />,
   'chevron-down': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />,
   filter: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4h18M6 10h12M9 16h6" />,
+  repeat: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />,
 };
 
 const Icon: React.FC<IconProps> = ({ name, className }) => {
