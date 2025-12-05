@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useAppContext } from '../context/AppContext';
 import NoteCard from '../components/NoteCard';
 import Icon from '../components/Icon';
@@ -97,20 +97,20 @@ const NotesListScreen: React.FC<NotesListScreenProps> = ({ onSelectNote, onDelet
     return [...pinnedNotes, ...regularNotes];
   }, [notes, searchQuery, sortOrder, filter]);
 
-  const handleRequestDelete = (noteId: string) => {
+  const handleRequestDelete = useCallback((noteId: string) => {
     setNoteToDelete(noteId);
-  };
+  }, []);
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = useCallback(() => {
     if (noteToDelete) {
       onDeleteNote(noteToDelete);
       setNoteToDelete(null);
     }
-  };
+  }, [noteToDelete, onDeleteNote]);
 
-  const handleCancelDelete = () => {
+  const handleCancelDelete = useCallback(() => {
     setNoteToDelete(null);
-  };
+  }, []);
 
   const sortOptions: { key: SortOrder, label: string }[] = [
     { key: 'newest', label: 'Newest' },
@@ -128,42 +128,54 @@ const NotesListScreen: React.FC<NotesListScreenProps> = ({ onSelectNote, onDelet
   ];
 
   return (
-    <div className="h-full flex flex-col text-slate-800 dark:text-text-primary bg-white dark:bg-primary">
-      <header className="p-3 border-b border-slate-200 dark:border-border-color flex-shrink-0 bg-white dark:bg-primary z-10">
+    <div className="h-full flex flex-col text-slate-800 dark:text-text-primary bg-slate-50 dark:bg-primary">
+      <header className="p-3 border-b border-slate-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-900 z-10">
         <div className="relative">
-          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-text-secondary pointer-events-none" />
+          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-gray-500 pointer-events-none" />
           <input
             type="text"
             placeholder="Search notes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-100 dark:bg-secondary border-none rounded-full py-2 pl-10 pr-3 text-sm text-slate-800 dark:text-text-primary placeholder-slate-500 dark:placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-slate-100 dark:bg-gray-800 border border-transparent dark:border-gray-700 rounded-xl py-2.5 pl-10 pr-3 text-sm text-slate-800 dark:text-text-primary placeholder-slate-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
           />
         </div>
-        <div className="pt-2 flex justify-between items-center gap-2 text-sm">
+        <div className="pt-3 flex justify-between items-center gap-2 text-sm">
           <div className="relative" ref={sortDropdownRef}>
-            <button onClick={() => setIsSortOpen(!isSortOpen)} className="flex items-center gap-1 bg-slate-100 dark:bg-secondary px-3 py-1.5 rounded-full text-sm font-medium text-slate-700 dark:text-text-primary transition-colors hover:bg-slate-200 dark:hover:bg-opacity-80">
+            <button onClick={() => setIsSortOpen(!isSortOpen)} className="flex items-center gap-1.5 bg-slate-100 dark:bg-gray-800 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-gray-300 transition-all hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95">
               <span>Order: {sortOptions.find(o => o.key === sortOrder)?.label}</span>
-              <Icon name="chevron-down" className={`w-4 h-4 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
+              <Icon name="chevron-down" className={`w-4 h-4 transition-transform duration-200 ${isSortOpen ? 'rotate-180' : ''}`} />
             </button>
             {isSortOpen && (
-              <div className="absolute top-full mt-2 w-40 bg-white dark:bg-secondary rounded-lg shadow-lg z-20 overflow-hidden border border-slate-200 dark:border-border-color animate-fade-in-fast">
+              <div className="absolute top-full mt-2 w-40 bg-white dark:bg-gray-800 rounded-xl shadow-xl z-20 overflow-hidden border border-slate-200 dark:border-gray-700 animate-fade-in-fast">
                 {sortOptions.map(option => (
-                  <button key={option.key} onClick={() => { setSortOrder(option.key); setIsSortOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-border-color transition-colors">{option.label}</button>
+                  <button
+                    key={option.key}
+                    onClick={() => { setSortOrder(option.key); setIsSortOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 transition-colors ${sortOrder === option.key ? 'bg-accent/10 text-accent font-medium' : 'hover:bg-slate-100 dark:hover:bg-gray-700'}`}
+                  >
+                    {option.label}
+                  </button>
                 ))}
               </div>
             )}
           </div>
 
           <div className="relative" ref={filterDropdownRef}>
-            <button onClick={() => setIsFilterOpen(!isFilterOpen)} className="flex items-center gap-1 bg-slate-100 dark:bg-secondary px-3 py-1.5 rounded-full text-sm font-medium text-slate-700 dark:text-text-primary transition-colors hover:bg-slate-200 dark:hover:bg-opacity-80">
+            <button onClick={() => setIsFilterOpen(!isFilterOpen)} className="flex items-center gap-1.5 bg-slate-100 dark:bg-gray-800 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-gray-300 transition-all hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95">
               <span>Filter: {filterOptions.find(o => o.key === filter)?.label}</span>
               <Icon name="filter" className="w-4 h-4" />
             </button>
             {isFilterOpen && (
-              <div className="absolute top-full right-0 mt-2 w-40 bg-white dark:bg-secondary rounded-lg shadow-lg z-20 overflow-hidden border border-slate-200 dark:border-border-color animate-fade-in-fast">
+              <div className="absolute top-full right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-xl shadow-xl z-20 overflow-hidden border border-slate-200 dark:border-gray-700 animate-fade-in-fast">
                 {filterOptions.map(option => (
-                  <button key={option.key} onClick={() => { setFilter(option.key); setIsFilterOpen(false); }} className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-border-color transition-colors">{option.label}</button>
+                  <button
+                    key={option.key}
+                    onClick={() => { setFilter(option.key); setIsFilterOpen(false); }}
+                    className={`w-full text-left px-4 py-2.5 transition-colors ${filter === option.key ? 'bg-accent/10 text-accent font-medium' : 'hover:bg-slate-100 dark:hover:bg-gray-700'}`}
+                  >
+                    {option.label}
+                  </button>
                 ))}
               </div>
             )}
@@ -171,12 +183,14 @@ const NotesListScreen: React.FC<NotesListScreenProps> = ({ onSelectNote, onDelet
         </div>
       </header>
 
-      <div className="flex-1 p-3 overflow-y-auto" style={{ paddingBottom: 'calc(1rem + var(--safe-bottom))' }}>
+      <div className="flex-1 p-3 overflow-y-auto scrollbar-thin" style={{ paddingBottom: 'calc(1rem + var(--safe-bottom))' }}>
         {notes.length === 0 ? (
-          <div className="text-center text-slate-500 dark:text-text-secondary mt-16 flex flex-col items-center">
-            <Icon name="notes" className="w-12 h-12 mb-4" />
-            <h3 className="text-xl font-semibold text-slate-800 dark:text-text-primary">No Notes Yet</h3>
-            <p>Click the '+' button above to create your first note.</p>
+          <div className="text-center text-slate-500 dark:text-gray-400 mt-16 flex flex-col items-center">
+            <div className="w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center mb-4">
+              <Icon name="notes" className="w-10 h-10 text-accent" />
+            </div>
+            <h3 className="text-xl font-semibold text-slate-700 dark:text-text-primary mb-2">No Notes Yet</h3>
+            <p className="text-sm">Click the '+' button above to create your first note.</p>
           </div>
         ) : sortedAndFilteredNotes.length > 0 ? (
           <div className="space-y-3">
@@ -193,10 +207,12 @@ const NotesListScreen: React.FC<NotesListScreenProps> = ({ onSelectNote, onDelet
             ))}
           </div>
         ) : (
-          <div className="text-center text-slate-500 dark:text-text-secondary mt-16 flex flex-col items-center">
-            <Icon name="search" className="w-12 h-12 mb-4" />
-            <h3 className="text-xl font-semibold text-slate-800 dark:text-text-primary">No Results Found</h3>
-            <p>Your search for "{searchQuery}" did not return any results.</p>
+          <div className="text-center text-slate-500 dark:text-gray-400 mt-16 flex flex-col items-center">
+            <div className="w-20 h-20 rounded-full bg-slate-200 dark:bg-gray-700 flex items-center justify-center mb-4">
+              <Icon name="search" className="w-10 h-10 text-slate-400 dark:text-gray-500" />
+            </div>
+            <h3 className="text-xl font-semibold text-slate-700 dark:text-text-primary mb-2">No Results Found</h3>
+            <p className="text-sm">Your search for "{searchQuery}" did not return any results.</p>
           </div>
         )}
       </div>

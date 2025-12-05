@@ -33,6 +33,8 @@ const SetupPasswordModal: React.FC<{
     const [securityAnswer, setSecurityAnswer] = useState('');
     const [error, setError] = useState('');
     const [step, setStep] = useState(1);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const securityQuestions = [
         "What is your mother's maiden name?",
@@ -78,8 +80,8 @@ const SetupPasswordModal: React.FC<{
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 animate-fade-in p-4">
-            <div className="bg-white dark:bg-secondary p-6 rounded-lg w-full max-w-sm shadow-lg">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in p-4">
+            <div className="bg-white dark:bg-secondary p-6 rounded-2xl w-full max-w-sm shadow-2xl border border-slate-200 dark:border-gray-700">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-text-primary mb-4">
                     {step === 1 ? 'Create Password' : 'Security Question'}
                 </h2>
@@ -88,23 +90,41 @@ const SetupPasswordModal: React.FC<{
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm text-slate-600 dark:text-text-secondary mb-1">Password</label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Enter password"
-                                className="w-full bg-slate-100 dark:bg-border-color p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                            />
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Enter password"
+                                    className="w-full bg-slate-100 dark:bg-border-color p-3 pr-12 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                                >
+                                    <Icon name={showPassword ? "eye-off" : "eye"} className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
                         <div>
                             <label className="block text-sm text-slate-600 dark:text-text-secondary mb-1">Confirm Password</label>
-                            <input
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                placeholder="Confirm password"
-                                className="w-full bg-slate-100 dark:bg-border-color p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                            />
+                            <div className="relative">
+                                <input
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder="Confirm password"
+                                    className="w-full bg-slate-100 dark:bg-border-color p-3 pr-12 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                                >
+                                    <Icon name={showConfirmPassword ? "eye-off" : "eye"} className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ) : (
@@ -188,6 +208,7 @@ const EnterPasswordModal: React.FC<{
     const [error, setError] = useState('');
     const [showForgot, setShowForgot] = useState(false);
     const [securityAnswer, setSecurityAnswer] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleVerify = async () => {
         const hash = await hashString(password);
@@ -214,8 +235,8 @@ const EnterPasswordModal: React.FC<{
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 animate-fade-in p-4">
-            <div className="bg-white dark:bg-secondary p-6 rounded-lg w-full max-w-sm shadow-lg">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in p-4">
+            <div className="bg-white dark:bg-secondary p-6 rounded-2xl w-full max-w-sm shadow-2xl border border-slate-200 dark:border-gray-700">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-text-primary mb-4">
                     {showForgot ? 'Forgot Password' : 'Enter Password'}
                 </h2>
@@ -230,19 +251,28 @@ const EnterPasswordModal: React.FC<{
                             value={securityAnswer}
                             onChange={(e) => setSecurityAnswer(e.target.value)}
                             placeholder="Your answer"
-                            className="w-full bg-slate-100 dark:bg-border-color p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+                            className="w-full bg-slate-100 dark:bg-border-color p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter your password"
-                            className="w-full bg-slate-100 dark:bg-border-color p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
-                            onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
-                        />
+                        <div className="relative">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Enter your password"
+                                className="w-full bg-slate-100 dark:bg-border-color p-3 pr-12 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent"
+                                onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                            >
+                                <Icon name={showPassword ? "eye-off" : "eye"} className="w-5 h-5" />
+                            </button>
+                        </div>
                         <button
                             onClick={() => { setShowForgot(true); setError(''); }}
                             className="text-sm text-accent"
@@ -421,13 +451,14 @@ const SecretsScreen: React.FC<SecretsScreenProps> = ({ onBack, onSelectNote, onN
 
     return (
         <div className="h-full flex flex-col bg-white dark:bg-primary text-slate-800 dark:text-text-primary">
-            <header className="p-3 flex items-center gap-3 border-b border-slate-200 dark:border-border-color flex-shrink-0 bg-white dark:bg-primary z-10">
-                <button onClick={onBack} className="p-2 -ml-2">
-                    <Icon name="back" />
+            <header className="p-4 flex items-center gap-3 border-b border-slate-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-900 z-10">
+                <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2">
+                    <Icon name="back" className="w-5 h-5" />
+                    <span className="text-xl font-bold bg-gradient-to-r from-accent to-blue-600 bg-clip-text text-transparent">Secrets</span>
                 </button>
-                <h1 className="text-xl font-bold flex-1">Secrets</h1>
+                <div className="flex-1"></div>
                 {isUnlocked && (
-                    <button onClick={handleLock} className="p-2 text-slate-500 dark:text-text-secondary">
+                    <button onClick={handleLock} className="p-2 text-slate-500 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-gray-800 rounded-full transition-colors">
                         <Icon name="lock" className="w-5 h-5" />
                     </button>
                 )}

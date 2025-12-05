@@ -15,11 +15,10 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      launchShowDuration: 0,
       launchAutoHide: true,
-      backgroundColor: "#0F172A",
-      androidSplashResourceName: "splash",
-      androidScaleType: "CENTER_CROP",
+      launchFadeOutDuration: 0,
+      showSpinner: false,
     },
     StatusBar: {
       overlaysWebView: false,
@@ -31,8 +30,8 @@ const config: CapacitorConfig = {
       resizeOnFullScreen: true,
     },
     LocalNotifications: {
-      smallIcon: "ic_stat_icon_config_sample",
-      iconColor: "#488AFF",
+      smallIcon: "ic_stat_gemini_generated_image_1g4e9r1g4e9r1g4e_1",
+      iconColor: "#3B82F6",
       // Use the custom channel we created with HIGH importance for heads-up notifications
       sound: "default",
     }

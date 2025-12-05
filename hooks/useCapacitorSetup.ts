@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
-import { StatusBar, Style } from '@capacitor/status-bar';
+import { StatusBar } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { Theme } from '../types';
 
@@ -12,6 +12,7 @@ interface CapacitorSetupConfig {
 
 /**
  * Hook to handle Capacitor setup: splash screen, status bar, and Android back button.
+ * Note: Theme-related status bar updates are handled by useTheme hook for synchronous updates.
  * @param config - Configuration object with theme and canGoBack callback
  */
 export function useCapacitorSetup({ theme, canGoBack, triggerBack }: CapacitorSetupConfig): void {
@@ -28,6 +29,13 @@ export function useCapacitorSetup({ theme, canGoBack, triggerBack }: CapacitorSe
   useEffect(() => {
     const initCapacitor = async () => {
       await SplashScreen.hide();
+
+      // Initial status bar setup (non-overlay mode)
+      try {
+        await StatusBar.setOverlaysWebView({ overlay: false });
+      } catch (e) {
+        console.error('Status bar initial setup error', e);
+      }
 
       // Register back button listener once
       CapacitorApp.addListener('backButton', ({ canGoBack: capacitorCanGoBack }) => {
@@ -47,21 +55,6 @@ export function useCapacitorSetup({ theme, canGoBack, triggerBack }: CapacitorSe
       CapacitorApp.removeAllListeners();
     };
   }, []);
-
-  // Update status bar styling when theme changes
-  useEffect(() => {
-    const updateStatusBar = async () => {
-      try {
-        await StatusBar.setOverlaysWebView({ overlay: false });
-        await StatusBar.setStyle({ style: theme === 'dark' ? Style.Dark : Style.Light });
-        await StatusBar.setBackgroundColor({ color: theme === 'dark' ? '#0F172A' : '#FFFFFF' });
-      } catch (e) {
-        console.error('Status bar error', e);
-      }
-    };
-
-    updateStatusBar();
-  }, [theme]);
 }
 
 export default useCapacitorSetup;

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3B82F6</color>
+    <color name="colorPrimaryDark">#2563EB</color>
+    <color name="colorAccent">#3B82F6</color>
+    
+    <!-- Light theme splash colors -->
+    <color name="splash_background_light">#FFFFFF</color>
+    <color name="splash_text_light">#0F172A</color>
+    <color name="splash_progress_light">#3B82F6</color>
+    <color name="splash_progress_bg_light">#E2E8F0</color>
+    
+    <!-- Dark theme splash colors -->
+    <color name="splash_background_dark">#0F172A</color>
+    <color name="splash_text_dark">#F8FAFC</color>
+    <color name="splash_progress_dark">#3B82F6</color>
+    <color name="splash_progress_bg_dark">#334155</color>
+</resources>

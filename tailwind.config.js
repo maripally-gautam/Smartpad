@@ -12,12 +12,20 @@ export default {
     theme: {
         extend: {
             colors: {
-                'primary': '#0F172A',
-                'secondary': '#1E293B',
-                'accent': '#38BDF8',
-                'text-primary': '#F8FAFC',
-                'text-secondary': '#94A3B8',
-                'border-color': '#334155',
+                // Dark mode colors - richer, more vibrant
+                'primary': '#111827',        // Darker, deeper background
+                'secondary': '#1F2937',      // Slightly lighter secondary
+                'accent': '#3B82F6',         // Vibrant blue accent
+                'accent-light': '#60A5FA',   // Lighter accent for hover
+                'text-primary': '#F9FAFB',   // Bright white text
+                'text-secondary': '#9CA3AF', // Softer gray for secondary text
+                'border-color': '#374151',   // Visible but subtle borders
+                // Accent colors for variety
+                'success': '#10B981',        // Green for success states
+                'warning': '#F59E0B',        // Amber for warnings
+                'danger': '#EF4444',         // Red for danger/delete
+                'info': '#06B6D4',           // Cyan for info
+                'purple-accent': '#8B5CF6',  // Purple for special states
             }
         }
     },

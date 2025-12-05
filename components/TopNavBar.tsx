@@ -14,9 +14,11 @@ const TopNavItem: React.FC<{
   isActive: boolean;
   onClick: () => void;
 }> = ({ label, isActive, onClick }) => {
-  const activeClass = isActive ? 'text-accent border-accent' : 'text-slate-500 dark:text-text-secondary border-transparent hover:text-slate-800 dark:hover:text-text-primary';
+  const activeClass = isActive
+    ? 'text-accent border-accent font-semibold'
+    : 'text-slate-500 dark:text-gray-400 border-transparent hover:text-accent dark:hover:text-accent';
   return (
-    <button onClick={onClick} className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors duration-200 ${activeClass}`}>
+    <button onClick={onClick} className={`px-3 py-2 text-sm font-medium border-b-2 transition-all duration-150 ${activeClass}`}>
       {label}
     </button>
   );
@@ -45,10 +47,10 @@ const TopNavBar: React.FC<TopNavBarProps> = ({ currentScreen, onNavigate, onNewN
   };
 
   return (
-    <header className="w-full bg-white dark:bg-secondary border-b border-slate-200 dark:border-border-color flex-shrink-0">
+    <header className="w-full bg-white dark:bg-gray-900 border-b border-slate-200 dark:border-gray-700 flex-shrink-0 shadow-sm">
       <div className="max-w-md mx-auto h-14 flex justify-between items-center px-4">
         <div className="flex items-center gap-3">
-          <button onClick={() => handleNavClick('list')} className="text-xl font-bold text-slate-800 dark:text-text-primary">
+          <button onClick={() => handleNavClick('list')} className="text-xl font-bold bg-gradient-to-r from-accent to-blue-400 bg-clip-text text-transparent">
             Smartpad
           </button>
           <div className="flex items-center">
@@ -66,7 +68,7 @@ const TopNavBar: React.FC<TopNavBarProps> = ({ currentScreen, onNavigate, onNewN
         </div>
         <button
           onClick={handleNewNoteClick}
-          className="bg-accent text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md hover:bg-opacity-90 transition-transform active:scale-90 flex-shrink-0"
+          className="bg-gradient-to-r from-accent to-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg shadow-accent/30 hover:shadow-accent/50 hover:scale-105 transition-all duration-150 active:scale-95 flex-shrink-0"
           aria-label="New Note"
         >
           <Icon name="plus" className="w-6 h-6" />

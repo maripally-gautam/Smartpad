@@ -32,6 +32,7 @@ const ReminderModal: React.FC<{
   const [customDays, setCustomDays] = useState(0);
   const [customMinutes, setCustomMinutes] = useState(30);
   const [markAsCompleted, setMarkAsCompleted] = useState(false);
+  const [validationError, setValidationError] = useState('');
 
   useEffect(() => {
     if (reminder) {
@@ -45,8 +46,9 @@ const ReminderModal: React.FC<{
         setCustomMinutes(reminder.customMinutes || 30);
       }
     } else {
+      // Set to current time + 2 minutes for new reminders
       const d = new Date();
-      d.setMinutes(d.getMinutes() + 5);
+      d.setMinutes(d.getMinutes() + 2);
       setDate(d.toISOString().split('T')[0]);
       setTime(d.toTimeString().substring(0, 5));
       setRepeat('none');
@@ -56,7 +58,19 @@ const ReminderModal: React.FC<{
     }
   }, [reminder]);
 
+  // Validate custom interval - minimum 5 minutes when days is 0
+  const isValidInterval = customDays > 0 || customMinutes >= 5;
+
+  // Check if the save button should be disabled
+  const isSaveDisabled = repeat === 'custom' && !isValidInterval;
+
   const handleSave = () => {
+    // Validate custom repeat interval
+    if (repeat === 'custom' && customDays === 0 && customMinutes < 5) {
+      setValidationError('Minimum repeat interval is 5 minutes');
+      return;
+    }
+
     const [year, month, day] = date.split('-').map(Number);
     const [hours, minutes] = time.split(':').map(Number);
     const reminderDate = new Date(year, month - 1, day, hours, minutes);
@@ -68,10 +82,8 @@ const ReminderModal: React.FC<{
     };
 
     if (repeat === 'custom') {
-      // Ensure minimum of 5 minutes if days is 0
-      const finalMinutes = customDays === 0 && customMinutes < 5 ? 5 : customMinutes;
       newReminder.customDays = customDays >= 0 ? customDays : 0;
-      newReminder.customMinutes = finalMinutes;
+      newReminder.customMinutes = customMinutes;
     }
 
     onSave(newReminder);
@@ -81,10 +93,22 @@ const ReminderModal: React.FC<{
   const handleDeleteAndClose = () => {
     onDelete();
     onClose();
-  }
+  };
 
-  // Validate custom interval - minimum 5 minutes when days is 0
-  const getMinMinutes = () => customDays === 0 ? 5 : 0;
+  // Update validation error when values change
+  useEffect(() => {
+    if (repeat === 'custom' && customDays === 0 && customMinutes < 5) {
+      setValidationError('Minimum repeat interval is 5 minutes');
+    } else {
+      setValidationError('');
+    }
+  }, [repeat, customDays, customMinutes]);
+
+  // Handle custom minutes change - allow any value but show warning
+  const handleCustomMinutesChange = (value: string) => {
+    const num = parseInt(value, 10) || 0;
+    setCustomMinutes(Math.max(0, num));
+  };
 
   return (
     <div className="space-y-4">
@@ -119,14 +143,15 @@ const ReminderModal: React.FC<{
             <input
               type="number"
               value={customMinutes}
-              onChange={e => setCustomMinutes(Math.max(getMinMinutes(), parseInt(e.target.value, 10) || 0))}
-              className="w-16 bg-slate-100 dark:bg-border-color p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-center"
-              min={getMinMinutes()}
+              onChange={e => handleCustomMinutesChange(e.target.value)}
+              className={`w-16 bg-slate-100 dark:bg-border-color p-2 rounded-lg focus:outline-none focus:ring-2 text-center ${customDays === 0 && customMinutes < 5 ? 'ring-2 ring-red-400 focus:ring-red-400' : 'focus:ring-accent'
+                }`}
+              min="0"
             />
             <span className="text-slate-600 dark:text-text-secondary">minutes</span>
           </div>
-          {customDays === 0 && customMinutes < 5 && (
-            <p className="text-xs text-amber-500">Minimum interval is 5 minutes</p>
+          {validationError && (
+            <p className="text-sm text-red-500 font-medium">{validationError}</p>
           )}
         </div>
       )}
@@ -145,8 +170,17 @@ const ReminderModal: React.FC<{
       <div className="flex justify-between items-center pt-4">
         {reminder && <button onClick={handleDeleteAndClose} className="text-red-500 font-semibold">Delete</button>}
         <div className="flex gap-2 ml-auto">
-          <button onClick={onClose} className="px-4 py-2 rounded-full font-semibold">Cancel</button>
-          <button onClick={handleSave} className="px-4 py-2 rounded-full bg-accent text-white font-semibold">Save</button>
+          <button onClick={onClose} className="px-4 py-2 rounded-full font-semibold text-slate-600 dark:text-text-secondary">Cancel</button>
+          <button
+            onClick={handleSave}
+            disabled={isSaveDisabled}
+            className={`px-4 py-2 rounded-full font-semibold transition-all ${isSaveDisabled
+              ? 'bg-slate-300 dark:bg-slate-600 text-slate-500 dark:text-slate-400 cursor-not-allowed'
+              : 'bg-accent text-white hover:bg-opacity-90 active:scale-95'
+              }`}
+          >
+            Save
+          </button>
         </div>
       </div>
     </div>
@@ -228,6 +262,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const [characterCount, setCharacterCount] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<MediaAttachment | null>(null);
+  const [hasBeenEdited, setHasBeenEdited] = useState(false); // Track if user made any edits
 
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -254,21 +289,34 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const scrollableRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const initialWindowHeight = useRef(window.innerHeight);
+  const keyboardHeightRef = useRef(0);
 
-  // Keyboard detection - toolbar stays at bottom of visible area
+  // Keyboard detection - improved timing for smooth toolbar positioning
   useEffect(() => {
     let keyboardShowListener: any;
     let keyboardHideListener: any;
+    let keyboardWillShowListener: any;
+    let keyboardWillHideListener: any;
 
     const setupKeyboardListeners = async () => {
       try {
-        // With KeyboardResize.Body, the body resizes when keyboard appears
-        // So we just need to keep toolbar at bottom: 0 and it will be above keyboard
-        keyboardShowListener = await Keyboard.addListener('keyboardDidShow', () => {
+        // Listen to keyboardWillShow for faster response
+        keyboardWillShowListener = await Keyboard.addListener('keyboardWillShow', (info) => {
+          keyboardHeightRef.current = info.keyboardHeight;
           setKeyboardVisible(true);
         });
 
+        keyboardShowListener = await Keyboard.addListener('keyboardDidShow', (info) => {
+          keyboardHeightRef.current = info.keyboardHeight;
+          setKeyboardVisible(true);
+        });
+
+        keyboardWillHideListener = await Keyboard.addListener('keyboardWillHide', () => {
+          setKeyboardVisible(false);
+        });
+
         keyboardHideListener = await Keyboard.addListener('keyboardDidHide', () => {
+          keyboardHeightRef.current = 0;
           setKeyboardVisible(false);
         });
       } catch (error) {
@@ -279,7 +327,9 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     setupKeyboardListeners();
 
     return () => {
+      if (keyboardWillShowListener) keyboardWillShowListener.remove();
       if (keyboardShowListener) keyboardShowListener.remove();
+      if (keyboardWillHideListener) keyboardWillHideListener.remove();
       if (keyboardHideListener) keyboardHideListener.remove();
     };
   }, []);
@@ -352,14 +402,21 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const noteHasChanged = useCallback(() => {
     if (settings.autoSave) return false;
     const currentContent = contentRef.current?.innerHTML || '';
+    const currentContentTrimmed = currentContent.trim().replace(/<br\s*\/?>/gi, '');
+
     if (!initialNoteRef.current) {
-      return title.trim() !== '' || (currentContent.trim() !== '' && currentContent.trim() !== '<br>') || media.length > 0;
+      // For new notes: check if there's any content OR if user has made any edits
+      const hasContent = title.trim() !== '' || currentContentTrimmed !== '' || media.length > 0;
+      // If user edited and then cleared everything, still show the prompt
+      return hasContent || hasBeenEdited;
     }
+
+    // For existing notes: compare with initial state
     return initialNoteRef.current.title !== title ||
       initialNoteRef.current.content !== currentContent ||
       JSON.stringify(initialNoteRef.current.media) !== JSON.stringify(media) ||
       JSON.stringify(initialNoteRef.current.reminder) !== JSON.stringify(reminder);
-  }, [title, media, reminder, settings.autoSave]);
+  }, [title, media, reminder, settings.autoSave, hasBeenEdited]);
 
   // Register back handler for device back button
   useEffect(() => {
@@ -896,6 +953,10 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     const html = contentRef.current?.innerHTML || '';
     setContent(html);
     setCharacterCount(countCharacters(html));
+    // Mark as edited when user types
+    if (!hasBeenEdited) {
+      setHasBeenEdited(true);
+    }
   };
 
   const handleStyleClick = (command: string) => { document.execCommand(command, false); contentRef.current?.focus(); updateToolbarState(); };
@@ -1026,7 +1087,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
           <input
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => { setTitle(e.target.value); if (!hasBeenEdited) setHasBeenEdited(true); }}
             placeholder="Title"
             className="bg-transparent text-xl font-bold placeholder-slate-400 dark:placeholder-text-secondary focus:outline-none flex-shrink-0 p-3 border border-slate-200 dark:border-border-color rounded-lg"
           />
@@ -1118,8 +1179,8 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
 
         {/* Formatting Toolbar */}
         <footer className="w-full bg-slate-100 dark:bg-secondary">
-          <div className="max-w-full mx-auto h-16 flex justify-around items-center px-2 overflow-x-auto overscroll-contain" style={{ touchAction: 'pan-x' }}>
-            <div className="flex justify-around items-center min-w-max gap-1">
+          <div className="max-w-full mx-auto h-14 flex items-center px-2 overflow-x-auto overflow-y-hidden overscroll-contain scrollbar-thin" style={{ touchAction: 'pan-x', scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}>
+            <div className="flex items-center min-w-max gap-1">
               <ToolbarButton onClick={() => handleStyleClick('bold')} icon="bold" label="Bold" isActive={activeStyles.has('bold')} />
               <ToolbarButton onClick={() => handleStyleClick('italic')} icon="italic" label="Italic" isActive={activeStyles.has('italic')} />
               <ToolbarButton onClick={() => handleStyleClick('underline')} icon="underline" label="Underline" isActive={activeStyles.has('underline')} />

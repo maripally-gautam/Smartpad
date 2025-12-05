@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo, memo } from 'react';
 import { Note } from '../types';
 import Icon from './Icon';
 
@@ -42,14 +42,34 @@ const hasRepeat = (note: Note): boolean => {
   return !!(note.reminder && note.reminder.repeat && note.reminder.repeat !== 'none');
 };
 
-const NoteCard: React.FC<NoteCardProps> = ({ note, onClick, onDelete, onTogglePin, onToggleFavourite, onToggleCompleted }) => {
-  // Convert &nbsp; to regular spaces, strip HTML tags, and clean up whitespace
-  const textContent = note.content
-    .replace(/&nbsp;/g, ' ')
-    .replace(/<[^>]*>?/gm, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const snippet = textContent.length > 100 ? textContent.substring(0, 100) + '...' : textContent;
+const NoteCardComponent: React.FC<NoteCardProps> = ({ note, onClick, onDelete, onTogglePin, onToggleFavourite, onToggleCompleted }) => {
+  // Memoize the text content extraction for performance with many notes
+  const snippet = useMemo(() => {
+    const textContent = note.content
+      .replace(/&nbsp;/g, ' ')
+      .replace(/<[^>]*>?/gm, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return textContent.length > 100 ? textContent.substring(0, 100) + '...' : textContent;
+  }, [note.content]);
+
+  // Memoize display date for performance
+  const displayDate = useMemo(() => {
+    const dateToFormat = note.reminder ? note.reminder.time : note.lastModified;
+    return new Date(dateToFormat).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }, [note.reminder, note.lastModified]);
+
+  // Memoize remaining time calculation
+  const remainingTime = useMemo(() => {
+    return note.reminder ? getRemainingTime(note.reminder.time) : null;
+  }, [note.reminder]);
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -71,37 +91,15 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onClick, onDelete, onTogglePi
     onToggleCompleted();
   };
 
-  // Show reminder time if reminder exists, otherwise show lastModified
-  const displayDate = note.reminder
-    ? new Date(note.reminder.time).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    })
-    : new Date(note.lastModified).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-
-  // Get remaining time for reminder
-  const remainingTime = note.reminder ? getRemainingTime(note.reminder.time) : null;
-
   const getBorderColorClass = () => {
     if (note.isPinned && note.isFavourite) {
-      return 'border-purple-500';
+      return 'border-purple-500 bg-purple-500/5 dark:bg-purple-500/10';
     }
     if (note.isPinned) {
-      return 'border-accent'; // Blue
+      return 'border-accent bg-blue-500/5 dark:bg-blue-500/10';
     }
     if (note.isFavourite) {
-      return 'border-yellow-500'; // Orange/Yellow
+      return 'border-amber-500 bg-amber-500/5 dark:bg-amber-500/10';
     }
     return 'border-transparent';
   };
@@ -109,52 +107,52 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onClick, onDelete, onTogglePi
   return (
     <div
       onClick={onClick}
-      className={`relative bg-slate-100 dark:bg-secondary p-4 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-opacity-80 transition-colors duration-100 active:scale-[0.98] border-l-4 ${getBorderColorClass()}`}
+      className={`relative bg-slate-50 dark:bg-secondary p-4 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-gray-700 transition-all duration-150 active:scale-[0.98] border-l-4 shadow-sm hover:shadow-md ${getBorderColorClass()}`}
     >
       <button
         onClick={handleCompletedClick}
-        className={`absolute top-3 right-3 w-6 h-6 rounded-md flex items-center justify-center border-2 transition-colors duration-75 outline-none ${note.isCompleted
-          ? 'bg-green-500 border-green-500'
-          : 'bg-transparent border-slate-400 dark:border-text-secondary hover:border-accent'
+        className={`absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-100 outline-none ${note.isCompleted
+          ? 'bg-emerald-500 border-emerald-500 shadow-emerald-500/30 shadow-sm'
+          : 'bg-transparent border-slate-300 dark:border-gray-500 hover:border-accent hover:scale-110'
           }`}
         aria-label={note.isCompleted ? "Mark as pending" : "Mark as completed"}
       >
         {note.isCompleted && <Icon name="check" className="w-4 h-4 text-white" />}
       </button>
 
-      <h3 className="font-bold text-lg text-slate-800 dark:text-text-primary truncate pr-8">{note.title}</h3>
-      <p className="text-slate-600 dark:text-text-secondary text-sm my-2">{snippet || 'No content'}</p>
-      <div className="flex justify-between items-center mt-2">
-        <div className="flex flex-col gap-0.5">
+      <h3 className="font-semibold text-lg text-slate-800 dark:text-text-primary truncate pr-8">{note.title}</h3>
+      <p className="text-slate-500 dark:text-text-secondary text-sm my-2 line-clamp-2">{snippet || 'No content'}</p>
+      <div className="flex justify-between items-center mt-3">
+        <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1.5">
-            {note.reminder && <Icon name="reminder" className="w-3.5 h-3.5 text-accent opacity-80" />}
-            {hasRepeat(note) && <Icon name="repeat" className="w-3.5 h-3.5 text-accent opacity-80" />}
-            <p className="text-xs text-slate-500 dark:text-text-secondary opacity-70">{displayDate}</p>
+            {note.reminder && <Icon name="reminder" className="w-3.5 h-3.5 text-accent" />}
+            {hasRepeat(note) && <Icon name="repeat" className="w-3.5 h-3.5 text-purple-500" />}
+            <p className="text-xs text-slate-400 dark:text-text-secondary">{displayDate}</p>
           </div>
           {remainingTime && (
-            <p className={`text-xs ${remainingTime.isPast ? 'text-red-500' : 'text-green-600 dark:text-green-400'} font-medium`}>
+            <p className={`text-xs font-medium ${remainingTime.isPast ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
               {remainingTime.text}
             </p>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <button
             onClick={handlePinClick}
-            className={`p-2 rounded-lg transition-colors duration-75 outline-none ${note.isPinned ? 'text-accent' : 'text-slate-500 dark:text-text-secondary'} hover:bg-slate-200 dark:hover:bg-slate-700`}
+            className={`p-2 rounded-full transition-all duration-100 outline-none ${note.isPinned ? 'text-accent bg-accent/10' : 'text-slate-400 dark:text-gray-500 hover:text-accent'} hover:bg-accent/10 active:scale-90`}
             aria-label="Pin note"
           >
             <Icon name={note.isPinned ? 'pin-filled' : 'pin'} className="w-5 h-5" />
           </button>
           <button
             onClick={handleFavouriteClick}
-            className={`p-2 rounded-lg transition-colors duration-75 outline-none ${note.isFavourite ? 'text-yellow-500' : 'text-slate-500 dark:text-text-secondary'} hover:bg-slate-200 dark:hover:bg-slate-700`}
+            className={`p-2 rounded-full transition-all duration-100 outline-none ${note.isFavourite ? 'text-amber-500 bg-amber-500/10' : 'text-slate-400 dark:text-gray-500 hover:text-amber-500'} hover:bg-amber-500/10 active:scale-90`}
             aria-label="Favourite note"
           >
             <Icon name={note.isFavourite ? 'star-filled' : 'star'} className="w-5 h-5" />
           </button>
           <button
             onClick={handleDeleteClick}
-            className="p-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors duration-75 outline-none"
+            className="p-2 rounded-full text-slate-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-all duration-100 outline-none active:scale-90"
             aria-label="Delete note"
           >
             <Icon name="trash" className="w-5 h-5" />
@@ -164,5 +162,20 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onClick, onDelete, onTogglePi
     </div>
   );
 };
+
+// Memoize the entire component to prevent unnecessary re-renders
+const NoteCard = memo(NoteCardComponent, (prevProps, nextProps) => {
+  // Custom comparison for better performance
+  return (
+    prevProps.note.id === nextProps.note.id &&
+    prevProps.note.title === nextProps.note.title &&
+    prevProps.note.content === nextProps.note.content &&
+    prevProps.note.isPinned === nextProps.note.isPinned &&
+    prevProps.note.isFavourite === nextProps.note.isFavourite &&
+    prevProps.note.isCompleted === nextProps.note.isCompleted &&
+    prevProps.note.lastModified === nextProps.note.lastModified &&
+    JSON.stringify(prevProps.note.reminder) === JSON.stringify(nextProps.note.reminder)
+  );
+});
 
 export default NoteCard;

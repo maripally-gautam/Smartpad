@@ -83,7 +83,7 @@ public class SmartpadNotificationsPlugin extends Plugin {
             String title, String body, boolean showMarkComplete) {
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, MainActivity.CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_popup_reminder)
+                .setSmallIcon(R.drawable.ic_stat_gemini_generated_image_1g4e9r1g4e9r1g4e_1)
                 .setContentTitle(title)
                 .setContentText(body)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
