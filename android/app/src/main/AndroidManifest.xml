@@ -40,6 +40,16 @@
             android:name=".NotificationPublisher"
             android:exported="false" />
 
+        <!-- Receiver for repeating notifications and boot completed -->
+        <receiver
+            android:name=".RepeatingNotificationScheduler"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.smartpad.app.ACTION_SHOW_NOTIFICATION" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

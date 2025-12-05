@@ -130,16 +130,18 @@ const ReminderModal: React.FC<{
           )}
         </div>
       )}
-      {/* Mark as completed checkbox */}
-      <label className="flex items-center gap-3 p-2 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={markAsCompleted}
-          onChange={e => setMarkAsCompleted(e.target.checked)}
-          className="w-5 h-5 rounded border-2 border-slate-400 dark:border-text-secondary accent-accent"
-        />
-        <span className="text-slate-700 dark:text-text-primary">Mark as completed after notification</span>
-      </label>
+      {/* Mark as completed checkbox - only show for non-repeating reminders */}
+      {repeat === 'none' && (
+        <label className="flex items-center gap-3 p-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={markAsCompleted}
+            onChange={e => setMarkAsCompleted(e.target.checked)}
+            className="w-5 h-5 rounded border-2 border-slate-400 dark:border-text-secondary accent-accent"
+          />
+          <span className="text-slate-700 dark:text-text-primary">Mark as completed after notification</span>
+        </label>
+      )}
       <div className="flex justify-between items-center pt-4">
         {reminder && <button onClick={handleDeleteAndClose} className="text-red-500 font-semibold">Delete</button>}
         <div className="flex gap-2 ml-auto">

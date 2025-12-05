@@ -8,6 +8,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 
 interface SettingsScreenProps {
   onBack: () => void;
+  onOpenSecrets: () => void;
 }
 
 const SettingsRow: React.FC<{
@@ -66,7 +67,7 @@ const ConfirmationDialog: React.FC<{
   );
 };
 
-const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
+const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack, onOpenSecrets }) => {
   const { settings, setSettings, setNotes } = useAppContext();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
@@ -151,6 +152,20 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
             </SettingsRow>
             <SettingsRow icon="trash" title="Delete Completed Tasks" subtitle="Instantly delete notes when marked complete">
               <ToggleSwitch enabled={settings.deleteCompletedTasks} onChange={handleDeleteCompletedToggle} />
+            </SettingsRow>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-slate-500 dark:text-text-secondary font-semibold text-xs mb-1.5 px-1">PRIVACY</h2>
+          <div className="space-y-2">
+            <SettingsRow
+              icon="lock"
+              title="Secrets"
+              subtitle="Password-protected private notes"
+              onClick={onOpenSecrets}
+            >
+              <Icon name="chevronRight" className="w-5 h-5 text-slate-400" />
             </SettingsRow>
           </div>
         </section>

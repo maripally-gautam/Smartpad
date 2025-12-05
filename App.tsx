@@ -4,11 +4,15 @@ import useLocalStorage from './hooks/useLocalStorage';
 import useNavigationHistory from './hooks/useNavigationHistory';
 import useTheme from './hooks/useTheme';
 import useCapacitorSetup from './hooks/useCapacitorSetup';
-import useLocalNotifications from './hooks/useLocalNotifications';
-import { Screen, Note, Settings } from './types';
+import useLocalNotifications, { generateNotificationId, SmartpadNotifications } from './hooks/useLocalNotifications';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { Screen, Note, Settings, SecretNote, SecretsConfig } from './types';
 import NotesListScreen from './screens/NotesListScreen';
 import NoteEditorScreen from './screens/NoteEditorScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import SecretsScreen from './screens/SecretsScreen';
+import SecretEditorScreen from './screens/SecretEditorScreen';
 import TopNavBar from './components/TopNavBar';
 import SafeAreaContainer from './components/SafeAreaContainer';
 import { INITIAL_SETTINGS } from './constants';
@@ -16,6 +20,8 @@ import { INITIAL_SETTINGS } from './constants';
 export default function App() {
   const [notes, setNotes] = useLocalStorage<Note[]>('notes', []);
   const [settings, setSettings] = useLocalStorage<Settings>('settings', INITIAL_SETTINGS);
+  const [secretNotes, setSecretNotes] = useLocalStorage<SecretNote[]>('secretNotes', []);
+  const [secretsConfig, setSecretsConfig] = useLocalStorage<SecretsConfig | null>('secretsConfig', null);
 
   const { currentScreen, selectedNoteId, navigate, goBack, canGoBack, registerBackHandler, triggerBack } = useNavigationHistory();
 
@@ -91,6 +97,22 @@ export default function App() {
   }, [setNotes, goBack]);
 
   const deleteNoteById = useCallback((noteId: string) => {
+    // Cancel any scheduled notifications for this note
+    const cancelNotification = async () => {
+      try {
+        const notificationId = generateNotificationId(noteId);
+        if (Capacitor.getPlatform() === 'android') {
+          await SmartpadNotifications.cancelNotification({ id: notificationId });
+        } else {
+          await LocalNotifications.cancel({ notifications: [{ id: notificationId }] });
+        }
+      } catch (err) {
+        console.error('Failed to cancel notification:', err);
+      }
+    };
+    cancelNotification();
+
+    // Remove the note from state
     setNotes((prevNotes) => prevNotes.filter((note) => note.id !== noteId));
   }, [setNotes]);
 
@@ -136,9 +158,68 @@ export default function App() {
     );
   }, [setNotes]);
 
+  // Secret note handlers
+  const handleSelectSecretNote = (noteId: string) => {
+    navigate('secret-editor', noteId);
+  };
+
+  const handleNewSecretNote = () => {
+    const newSecretNote: SecretNote = {
+      id: new Date().toISOString(),
+      title: 'Untitled Secret',
+      content: '',
+      media: [],
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString(),
+    };
+    setSecretNotes((prevNotes) => [newSecretNote, ...prevNotes]);
+    navigate('secret-editor', newSecretNote.id);
+  };
+
+  const handleSaveSecretNote = useCallback((noteToSave: SecretNote) => {
+    setSecretNotes((prevNotes) => {
+      const noteExists = prevNotes.some((note) => note.id === noteToSave.id);
+      if (noteExists) {
+        return prevNotes.map((note) => (note.id === noteToSave.id ? noteToSave : note));
+      } else {
+        return [noteToSave, ...prevNotes];
+      }
+    });
+    goBack();
+  }, [setSecretNotes, goBack]);
+
+  const handleUpdateSecretNote = useCallback((noteToUpdate: SecretNote) => {
+    setSecretNotes((prevNotes) => {
+      const noteExists = prevNotes.some((note) => note.id === noteToUpdate.id);
+      if (noteExists) {
+        return prevNotes.map((note) => (note.id === noteToUpdate.id ? noteToUpdate : note));
+      } else {
+        return [noteToUpdate, ...prevNotes];
+      }
+    });
+  }, [setSecretNotes]);
+
+  const handleDeleteSecretNote = useCallback((noteId: string) => {
+    setSecretNotes((prevNotes) => prevNotes.filter((note) => note.id !== noteId));
+  }, [setSecretNotes]);
+
+  const handleDeleteSecretNoteFromEditor = useCallback((noteId: string) => {
+    handleDeleteSecretNote(noteId);
+    goBack();
+  }, [handleDeleteSecretNote, goBack]);
+
+  const handleOpenSecrets = () => {
+    navigate('secrets');
+  };
+
   const selectedNote = useMemo(
     () => notes.find((note) => note.id === selectedNoteId) || null,
     [notes, selectedNoteId]
+  );
+
+  const selectedSecretNote = useMemo(
+    () => secretNotes.find((note) => note.id === selectedNoteId) || null,
+    [secretNotes, selectedNoteId]
   );
 
   const renderScreen = () => {
@@ -155,7 +236,27 @@ export default function App() {
           />
         );
       case 'settings':
-        return <SettingsScreen onBack={handleBack} />;
+        return <SettingsScreen onBack={handleBack} onOpenSecrets={handleOpenSecrets} />;
+      case 'secrets':
+        return (
+          <SecretsScreen
+            onBack={() => navigate('settings')}
+            onSelectNote={handleSelectSecretNote}
+            onNewNote={handleNewSecretNote}
+            onDeleteNote={handleDeleteSecretNote}
+          />
+        );
+      case 'secret-editor':
+        return (
+          <SecretEditorScreen
+            note={selectedSecretNote}
+            onSave={handleSaveSecretNote}
+            onUpdateNote={handleUpdateSecretNote}
+            onBack={handleBack}
+            onDelete={handleDeleteSecretNoteFromEditor}
+            registerBackHandler={registerBackHandler}
+          />
+        );
       case 'list':
       default:
         return (
@@ -171,7 +272,7 @@ export default function App() {
   };
 
   return (
-    <AppProvider value={{ notes, setNotes, settings, setSettings }}>
+    <AppProvider value={{ notes, setNotes, settings, setSettings, secretNotes, setSecretNotes, secretsConfig, setSecretsConfig }}>
       <div className="w-full h-full font-sans bg-white dark:bg-primary overflow-hidden">
         <div className="w-full h-full shadow-2xl">
           <SafeAreaContainer className="bg-white dark:bg-primary">

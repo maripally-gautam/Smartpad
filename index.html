@@ -7,65 +7,7 @@
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Smartpad</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            'primary': '#0F172A',
-            'secondary': '#1E293B',
-            'accent': '#38BDF8',
-            'text-primary': '#F8FAFC',
-            'text-secondary': '#94A3B8',
-            'border-color': '#334155',
-          }
-        }
-      }
-    }
-  </script>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body,
-    #root {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      position: fixed;
-      width: 100%;
-      top: 0;
-      left: 0;
-    }
-
-    body {
-      overscroll-behavior: none;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    [contenteditable][placeholder]:empty:before {
-      content: attr(placeholder);
-      color: #94A3B8;
-      /* text-secondary */
-      pointer-events: none;
-      display: block;
-      /* For line-break */
-    }
-
-    /* Safe area padding utilities */
-    .pb-safe {
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
-
-    .mb-safe {
-      margin-bottom: env(safe-area-inset-bottom, 0px);
-    }
-
     /* Slim scrollbar styles */
     .scrollbar-thin {
       scrollbar-width: thin;
@@ -130,26 +72,33 @@
         opacity: 1;
       }
     }
+
+    /* Prevent FOUC - initial styles before Tailwind loads */
+    html,
+    body,
+    #root {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
   </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "@capacitor/cli": "https://aistudiocdn.com/@capacitor/cli@^7.4.4",
-    "@capacitor/camera": "https://aistudiocdn.com/@capacitor/camera@^7.0.2",
-    "@capacitor/app": "https://aistudiocdn.com/@capacitor/app@^7.1.0",
-    "capacitor-voice-recorder": "https://aistudiocdn.com/capacitor-voice-recorder@^7.0.6",
-    "@capacitor/local-notifications": "https://aistudiocdn.com/@capacitor/local-notifications@^7.0.3",
-    "@capacitor/status-bar": "https://aistudiocdn.com/@capacitor/status-bar@^7.0.3",
-    "@capacitor/splash-screen": "https://aistudiocdn.com/@capacitor/splash-screen@^7.0.3"
-  }
-}
-</script>
+  <script>
+    // Apply saved theme immediately to prevent flash
+    (function () {
+      try {
+        var settings = localStorage.getItem('settings');
+        if (settings) {
+          var parsed = JSON.parse(settings);
+          if (parsed && parsed.theme === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+        }
+      } catch (e) { }
+    })();
+  </script>
 </head>
 
-<body class="bg-primary">
+<body class="bg-white dark:bg-primary">
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>

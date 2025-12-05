@@ -1,10 +1,32 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { LocalNotifications, ActionPerformed } from '@capacitor/local-notifications';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Note, Reminder, Screen } from '../types';
 
 // Channel ID must match the one created in MainActivity.java
 const NOTIFICATION_CHANNEL_ID = 'smartpad_reminders';
+
+// Register the custom SmartpadNotifications plugin for Android
+interface SmartpadNotificationsPlugin {
+  scheduleNotification(options: {
+    id: number;
+    title: string;
+    body: string;
+    noteId: string;
+    triggerTime: number;
+    showMarkComplete: boolean;
+    repeatType: string;
+    customDays: number;
+    customMinutes: number;
+  }): Promise<{ id: number }>;
+  cancelNotification(options: { id: number }): Promise<void>;
+  cancelAllNotifications(): Promise<void>;
+}
+
+const SmartpadNotifications = registerPlugin<SmartpadNotificationsPlugin>('SmartpadNotifications');
+
+// Export for use in other components
+export { SmartpadNotifications };
 
 interface UseLocalNotificationsConfig {
   notes: Note[];
@@ -15,8 +37,9 @@ interface UseLocalNotificationsConfig {
 
 /**
  * Generate a unique notification ID based on note ID hash.
+ * Exported for use when canceling notifications on note deletion.
  */
-function generateNotificationId(noteId: string): number {
+export function generateNotificationId(noteId: string): number {
   let hash = 0;
   for (let i = 0; i < noteId.length; i++) {
     const char = noteId.charCodeAt(i);
@@ -137,6 +160,7 @@ export function useLocalNotifications({
         await LocalNotifications.cancel({ notifications: pending.notifications });
       }
 
+      const isAndroid = Capacitor.getPlatform() === 'android';
       const notificationsToSchedule = [];
       const now = new Date();
 
@@ -151,24 +175,39 @@ export function useLocalNotifications({
               .replace(/<[^>]*>?/gm, ' ')
               .replace(/\s+/g, ' ')
               .trim();
-            const snippet = textContent.substring(0, 100);
+            const snippet = textContent.substring(0, 100) || 'Reminder for your note';
 
-            const notificationConfig: any = {
-              id: generateNotificationId(note.id),
-              title: note.title,
-              body: snippet || 'Reminder for your note',
-              schedule: { at: reminderTime, allowWhileIdle: true },
-              extra: { noteId: note.id },
-              sound: 'default',
-              autoCancel: true,
-            };
-
-            // Add Android channel
-            if (Capacitor.getPlatform() === 'android') {
-              notificationConfig.channelId = NOTIFICATION_CHANNEL_ID;
+            if (isAndroid) {
+              // Use the custom SmartpadNotifications plugin on Android
+              // This properly handles repeating notifications even when app is closed
+              try {
+                await SmartpadNotifications.scheduleNotification({
+                  id: generateNotificationId(note.id),
+                  title: note.title || 'Reminder',
+                  body: snippet,
+                  noteId: note.id,
+                  triggerTime: reminderTime.getTime(),
+                  showMarkComplete: true,
+                  repeatType: note.reminder.repeat || 'none',
+                  customDays: note.reminder.customDays || 0,
+                  customMinutes: note.reminder.customMinutes || 0,
+                });
+              } catch (err) {
+                console.error('Failed to schedule notification via SmartpadNotifications:', err);
+              }
+            } else {
+              // Use standard LocalNotifications for iOS/web
+              const notificationConfig: any = {
+                id: generateNotificationId(note.id),
+                title: note.title,
+                body: snippet,
+                schedule: { at: reminderTime, allowWhileIdle: true },
+                extra: { noteId: note.id },
+                sound: 'default',
+                autoCancel: true,
+              };
+              notificationsToSchedule.push(notificationConfig);
             }
-
-            notificationsToSchedule.push(notificationConfig);
           } else if (note.reminder.repeat && note.reminder.repeat !== 'none') {
             // Past time with repeat - schedule next occurrence
             updateNoteWithNextReminder(note, note.reminder);
@@ -176,6 +215,7 @@ export function useLocalNotifications({
         }
       }
 
+      // Schedule non-Android notifications using LocalNotifications
       if (notificationsToSchedule.length > 0) {
         await LocalNotifications.schedule({ notifications: notificationsToSchedule });
       }

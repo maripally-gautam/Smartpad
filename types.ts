@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 
-export type Screen = 'list' | 'editor' | 'settings';
+export type Screen = 'list' | 'editor' | 'settings' | 'secrets' | 'secret-editor';
 
 export interface MediaAttachment {
   id: string;
@@ -30,6 +30,23 @@ export interface Note {
   reminder?: Reminder;
 }
 
+// Secret note - similar to Note but without reminder functionality
+export interface SecretNote {
+  id: string;
+  title: string;
+  content: string; // HTML content
+  media: MediaAttachment[];
+  createdAt: string;
+  lastModified: string;
+}
+
+// Secrets password and backup
+export interface SecretsConfig {
+  passwordHash: string; // SHA-256 hash of password
+  securityQuestion: string;
+  securityAnswerHash: string; // SHA-256 hash of answer
+}
+
 export type Theme = 'light' | 'dark';
 
 export interface Settings {
@@ -46,4 +63,8 @@ export interface AppContextType {
   setNotes: Dispatch<SetStateAction<Note[]>>;
   settings: Settings;
   setSettings: Dispatch<SetStateAction<Settings>>;
+  secretNotes: SecretNote[];
+  setSecretNotes: Dispatch<SetStateAction<SecretNote[]>>;
+  secretsConfig: SecretsConfig | null;
+  setSecretsConfig: Dispatch<SetStateAction<SecretsConfig | null>>;
 }

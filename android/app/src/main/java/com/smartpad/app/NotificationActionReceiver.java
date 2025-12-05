@@ -49,26 +49,59 @@ public class NotificationActionReceiver extends BroadcastReceiver {
 
         // Process the action
         if (ACTION_SNOOZE.equals(action)) {
-            handleSnooze(context, noteId);
+            handleSnooze(context, noteId, notificationId);
         } else if (ACTION_MARK_COMPLETE.equals(action)) {
-            handleMarkComplete(context, noteId);
+            handleMarkComplete(context, noteId, notificationId);
         }
+    }
+
+    /**
+     * Generate a unique notification ID based on note ID hash
+     */
+    private int generateNotificationId(String noteId) {
+        int hash = 0;
+        for (int i = 0; i < noteId.length(); i++) {
+            char c = noteId.charAt(i);
+            hash = ((hash << 5) - hash) + c;
+            hash = hash & hash;
+        }
+        return Math.abs(hash);
     }
 
     /**
      * Handle snooze action - reschedule the reminder for 5 minutes from now
      */
-    private void handleSnooze(Context context, String noteId) {
+    private void handleSnooze(Context context, String noteId, int notificationId) {
         try {
             SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             String notesJson = prefs.getString(NOTES_KEY, "[]");
 
             JSONArray notes = new JSONArray(notesJson);
             boolean updated = false;
+            String title = "";
+            String body = "";
+            String repeatType = "none";
+            int customDays = 0;
+            int customMinutes = 0;
 
             for (int i = 0; i < notes.length(); i++) {
                 JSONObject note = notes.getJSONObject(i);
                 if (noteId.equals(note.getString("id"))) {
+                    // Get note info for the notification
+                    title = note.optString("title", "Reminder");
+                    String content = note.optString("content", "");
+                    body = content
+                            .replaceAll("&nbsp;", " ")
+                            .replaceAll("<[^>]*>", " ")
+                            .replaceAll("\\s+", " ")
+                            .trim();
+                    if (body.length() > 100) {
+                        body = body.substring(0, 100);
+                    }
+                    if (body.isEmpty()) {
+                        body = "Reminder for your note";
+                    }
+
                     // Create snooze reminder (5 minutes from now)
                     Date snoozeTime = new Date();
                     snoozeTime.setTime(snoozeTime.getTime() + (5 * 60 * 1000)); // 5 minutes in milliseconds
@@ -78,16 +111,16 @@ public class NotificationActionReceiver extends BroadcastReceiver {
                     // Preserve existing reminder settings if available
                     if (note.has("reminder") && !note.isNull("reminder")) {
                         JSONObject existingReminder = note.getJSONObject("reminder");
-                        if (existingReminder.has("repeat")) {
-                            reminder.put("repeat", existingReminder.getString("repeat"));
-                        } else {
-                            reminder.put("repeat", "none");
+                        repeatType = existingReminder.optString("repeat", "none");
+                        customDays = existingReminder.optInt("customDays", 0);
+                        customMinutes = existingReminder.optInt("customMinutes", 0);
+
+                        reminder.put("repeat", repeatType);
+                        if (customDays > 0) {
+                            reminder.put("customDays", customDays);
                         }
-                        if (existingReminder.has("customDays")) {
-                            reminder.put("customDays", existingReminder.getInt("customDays"));
-                        }
-                        if (existingReminder.has("customMinutes")) {
-                            reminder.put("customMinutes", existingReminder.getInt("customMinutes"));
+                        if (customMinutes > 0) {
+                            reminder.put("customMinutes", customMinutes);
                         }
                     } else {
                         reminder.put("repeat", "none");
@@ -100,6 +133,13 @@ public class NotificationActionReceiver extends BroadcastReceiver {
                     note.put("lastModified", formatISODate(new Date()));
 
                     updated = true;
+
+                    // Schedule the snooze notification using RepeatingNotificationScheduler
+                    int scheduleNotifId = notificationId > 0 ? notificationId : generateNotificationId(noteId);
+                    RepeatingNotificationScheduler.scheduleNotification(
+                            context, scheduleNotifId, noteId, title, body,
+                            snoozeTime.getTime(), repeatType, customDays, customMinutes, true);
+
                     Log.d(TAG, "Snoozed note: " + noteId + " to " + formatISODate(snoozeTime));
                     break;
                 }
@@ -118,9 +158,10 @@ public class NotificationActionReceiver extends BroadcastReceiver {
     }
 
     /**
-     * Handle mark complete action - remove the reminder from the note
+     * Handle mark complete action - remove the reminder from the note and cancel
+     * any scheduled notifications
      */
-    private void handleMarkComplete(Context context, String noteId) {
+    private void handleMarkComplete(Context context, String noteId, int notificationId) {
         try {
             SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             String notesJson = prefs.getString(NOTES_KEY, "[]");
@@ -134,6 +175,10 @@ public class NotificationActionReceiver extends BroadcastReceiver {
                     // Remove the reminder
                     note.remove("reminder");
                     note.put("lastModified", formatISODate(new Date()));
+
+                    // Cancel any scheduled repeating notifications
+                    int cancelNotifId = notificationId > 0 ? notificationId : generateNotificationId(noteId);
+                    RepeatingNotificationScheduler.cancelNotification(context, cancelNotifId);
 
                     updated = true;
                     Log.d(TAG, "Marked complete note: " + noteId);
