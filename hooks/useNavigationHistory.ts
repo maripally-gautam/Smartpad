@@ -87,7 +87,8 @@ export function useNavigationHistory(): UseNavigationHistoryReturn {
     backHandlerRef.current = handler;
   }, []);
 
-  // Trigger back navigation (called from device back button)
+  // Trigger back navigation (called from device back button or nav clicks)
+  // When there's a pending navigation and back is not blocked, go to pending target
   const triggerBack = useCallback(() => {
     if (backHandlerRef.current) {
       const shouldBlock = backHandlerRef.current();
@@ -95,8 +96,14 @@ export function useNavigationHistory(): UseNavigationHistoryReturn {
         return; // Handler will show a modal or take action
       }
     }
-    window.history.back();
-  }, []);
+    // If there's a pending navigation target (set by nav clicks), go there
+    if (pendingNavigation) {
+      navigate(pendingNavigation.screen, pendingNavigation.noteId);
+      setPendingNavigation(null);
+    } else {
+      window.history.back();
+    }
+  }, [pendingNavigation, navigate]);
 
   // Execute pending navigation after unsaved changes are handled
   const executePendingNavigation = useCallback(() => {

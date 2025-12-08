@@ -14,9 +14,9 @@ import { Capacitor } from '@capacitor/core';
 
 const LanguageSelectionModal: React.FC<{ onSelect: (lang: string) => void, onClose: () => void }> = ({ onSelect, onClose }) => (
   <div className="space-y-2">
-    <button onClick={() => onSelect('en-US')} className="w-full text-left p-3 rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors text-white">English</button>
-    <button onClick={() => onSelect('hi-IN')} className="w-full text-left p-3 rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors text-white">Hindi</button>
-    <button onClick={() => onSelect('te-IN')} className="w-full text-left p-3 rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors text-white">Telugu</button>
+    <button onClick={() => onSelect('en-US')} className="w-full text-left p-3 rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors text-slate-800 dark:text-white">English</button>
+    <button onClick={() => onSelect('hi-IN')} className="w-full text-left p-3 rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors text-slate-800 dark:text-white">Hindi</button>
+    <button onClick={() => onSelect('te-IN')} className="w-full text-left p-3 rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors text-slate-800 dark:text-white">Telugu</button>
   </div>
 );
 
@@ -199,10 +199,10 @@ const ReminderModal: React.FC<{
 
 const ImageChoiceModal: React.FC<{ onClose: () => void; onTakePhoto: () => void; onChooseGallery: () => void; }> = ({ onClose, onTakePhoto, onChooseGallery }) => (
   <div className="space-y-2">
-    <button onClick={onTakePhoto} className="w-full text-left p-3 rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors flex items-center text-white">
+    <button onClick={onTakePhoto} className="w-full text-left p-3 rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors flex items-center text-slate-800 dark:text-white">
       <Icon name="camera" className="w-5 h-5 mr-3" /> Take Photo
     </button>
-    <button onClick={onChooseGallery} className="w-full text-left p-3 rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors flex items-center text-white">
+    <button onClick={onChooseGallery} className="w-full text-left p-3 rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors flex items-center text-slate-800 dark:text-white">
       <Icon name="image" className="w-5 h-5 mr-3" /> Choose from Gallery
     </button>
   </div>
@@ -210,9 +210,9 @@ const ImageChoiceModal: React.FC<{ onClose: () => void; onTakePhoto: () => void;
 
 const FontSizeModal: React.FC<{ onSelect: (size: number) => void; }> = ({ onSelect }) => (
   <div className="flex justify-around items-center p-2">
-    <button onClick={() => onSelect(2)} className="px-4 py-2 text-sm rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors text-white">Small</button>
-    <button onClick={() => onSelect(3)} className="px-4 py-2 text-base rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors text-white">Normal</button>
-    <button onClick={() => onSelect(5)} className="px-4 py-2 text-lg rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors text-white">Large</button>
+    <button onClick={() => onSelect(2)} className="px-4 py-2 text-sm rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors text-slate-800 dark:text-white">Small</button>
+    <button onClick={() => onSelect(3)} className="px-4 py-2 text-base rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors text-slate-800 dark:text-white">Normal</button>
+    <button onClick={() => onSelect(5)} className="px-4 py-2 text-lg rounded-lg active:bg-slate-100 dark:active:bg-border-color transition-colors text-slate-800 dark:text-white">Large</button>
   </div>
 );
 
@@ -286,7 +286,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   const [isImageChoiceModalOpen, setIsImageChoiceModalOpen] = useState(false);
 
   const [activeStyles, setActiveStyles] = useState<Set<string>>(new Set());
-  const [alignment, setAlignment] = useState<Alignment>('justify');
+  const [alignment, setAlignment] = useState<Alignment>('left');
 
   const contentRef = useRef<HTMLDivElement>(null);
   const initialNoteRef = useRef<Note | null>(null);
@@ -382,7 +382,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     checkPermissions();
   }, []);
 
-  // Preload TTS engine for faster first read
+  // Preload TTS engine for faster first read - do this immediately on mount
   useEffect(() => {
     const preloadTTS = async () => {
       try {
@@ -398,15 +398,16 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
       } catch (error) {
         // Fallback: preload Web Speech API
         if ('speechSynthesis' in window) {
+          // Ensure voices are loaded
+          window.speechSynthesis.getVoices();
           const utterance = new SpeechSynthesisUtterance(' ');
           utterance.volume = 0;
           window.speechSynthesis.speak(utterance);
         }
       }
     };
-    // Slight delay to not interfere with initial render
-    const timer = setTimeout(preloadTTS, 500);
-    return () => clearTimeout(timer);
+    // No delay - start preloading immediately
+    preloadTTS();
   }, []);
 
   // Cleanup TTS and Speech Recognition when component unmounts
@@ -1082,7 +1083,20 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
   };
 
   const ToolbarButton: React.FC<{ onClick: () => void; icon: string; label: string; isActive?: boolean; }> = ({ onClick, icon, label, isActive }) => (
-    <button onClick={onClick} className={`flex flex-col items-center justify-center p-2 text-xs w-16 h-16 transition-colors duration-75 focus:outline-none ${isActive ? 'text-accent' : 'text-white'}`} aria-label={label}>
+    <button
+      onTouchStart={(e) => {
+        e.preventDefault(); // Prevent focus change that hides keyboard
+      }}
+      onMouseDown={(e) => {
+        e.preventDefault(); // Prevent focus change that hides keyboard
+      }}
+      onClick={(e) => {
+        e.preventDefault();
+        onClick();
+      }}
+      className={`flex flex-col items-center justify-center p-2 text-xs w-16 h-16 transition-colors duration-75 focus:outline-none ${isActive ? 'text-accent' : 'text-slate-700 dark:text-white'}`}
+      aria-label={label}
+    >
       <Icon name={icon} className="w-5 h-5 mb-1" /> <span>{label}</span>
     </button>
   );
@@ -1109,13 +1123,14 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     >
       {/* Header - Editor toolbar */}
       <header className="flex-shrink-0 p-3 flex justify-between items-center border-b border-slate-200 dark:border-border-color bg-white dark:bg-primary z-20">
-        <button onClick={handleBackPress} className="p-2 -ml-2 flex items-center gap-1 text-white">
+        <button onClick={handleBackPress} className="p-2 -ml-2 flex items-center gap-1 text-slate-800 dark:text-white">
           <Icon name="back" />
           <span className="text-sm font-medium">Back</span>
         </button>
         <div className="flex items-center gap-2">
           {/* Speech-to-Text button - WhatsApp style circular mic button */}
           <button
+            onMouseDown={(e) => e.preventDefault()}
             onClick={handleSpeechButtonClick}
             className="relative flex items-center justify-center w-10 h-10"
           >
@@ -1139,10 +1154,10 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
               <Icon name="mic" className="w-5 h-5 text-white" />
             </div>
           </button>
-          <button onClick={() => setIsReminderModalOpen(true)} className={`p-2 ${reminder ? 'text-accent' : ''}`}>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => setIsReminderModalOpen(true)} className={`p-2 ${reminder ? 'text-accent' : ''}`}>
             <Icon name={reminder ? 'reminder-active' : 'reminder'} />
           </button>
-          {note && <button onClick={() => setIsDeleteModalOpen(true)} className="p-2 text-red-500"><Icon name="trash" /></button>}
+          {note && <button onMouseDown={(e) => e.preventDefault()} onClick={() => setIsDeleteModalOpen(true)} className="p-2 text-red-500"><Icon name="trash" /></button>}
           <button onClick={handleSave} className="bg-accent text-white px-4 py-1.5 rounded-full font-semibold text-sm">Done</button>
         </div>
       </header>
@@ -1160,7 +1175,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
             value={title}
             onChange={(e) => { setTitle(e.target.value); if (!hasBeenEdited) setHasBeenEdited(true); }}
             placeholder="Title"
-            className="bg-transparent text-xl font-bold placeholder-slate-400 dark:placeholder-text-secondary focus:outline-none flex-shrink-0 p-3 border border-slate-200 dark:border-border-color rounded-lg text-white"
+            className="bg-transparent text-xl font-bold placeholder-slate-400 dark:placeholder-text-secondary focus:outline-none flex-shrink-0 p-3 border border-slate-200 dark:border-border-color rounded-lg text-slate-800 dark:text-white"
           />
 
           {/* Content Editor - grows to fill space */}
@@ -1172,7 +1187,7 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
               ref={contentRef}
               contentEditable
               onInput={handleContentInput}
-              className="bg-transparent text-white focus:outline-none w-full h-full p-3"
+              className="bg-transparent text-slate-800 dark:text-white focus:outline-none w-full h-full p-3"
               style={{ wordWrap: 'break-word', overflowWrap: 'break-word', minHeight: '200px' }}
             />
             {!content.replace(/<[^>]*>?/gm, ' ').trim() && (
@@ -1234,13 +1249,12 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         </div>
       </div>
 
-      {/* Bottom Toolbar - Fixed at bottom of visible area */}
+      {/* Bottom Toolbar - Fixed at bottom */}
       <div
         ref={toolbarRef}
         className="fixed left-0 right-0 bottom-0 bg-white dark:bg-primary border-t border-slate-200 dark:border-border-color z-50"
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => {
-          // Only prevent default if trying to scroll vertically on toolbar
           e.stopPropagation();
         }}
       >
@@ -1291,9 +1305,9 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
         <FontSizeModal onSelect={handleFontSizeSelect} />
       </Modal>
       <Modal isOpen={isUnsavedChangesModalOpen} onClose={() => setIsUnsavedChangesModalOpen(false)} title="Unsaved Changes">
-        <p className="text-white/60 mb-6">You have unsaved changes. Do you want to save them?</p>
+        <p className="text-slate-600 dark:text-white/60 mb-6">You have unsaved changes. Do you want to save them?</p>
         <div className="flex justify-end gap-2">
-          <button onClick={() => setIsUnsavedChangesModalOpen(false)} className="px-5 py-2 rounded-full font-semibold text-white">Cancel</button>
+          <button onClick={() => setIsUnsavedChangesModalOpen(false)} className="px-5 py-2 rounded-full font-semibold text-slate-800 dark:text-white">Cancel</button>
           <button onClick={handleDiscard} className="px-5 py-2 rounded-full font-semibold text-red-500 active:bg-red-500/10">Discard</button>
           <button onClick={handleSaveAndNavigate} className="px-5 py-2 rounded-full bg-accent text-white font-semibold active:scale-95">Save</button>
         </div>

@@ -67,4 +67,6 @@ export interface AppContextType {
   setSecretNotes: Dispatch<SetStateAction<SecretNote[]>>;
   secretsConfig: SecretsConfig | null;
   setSecretsConfig: Dispatch<SetStateAction<SecretsConfig | null>>;
+  secretsUnlocked: boolean;
+  setSecretsUnlocked: Dispatch<SetStateAction<boolean>>;
 }

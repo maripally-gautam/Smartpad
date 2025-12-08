@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { AppProvider } from './context/AppContext';
 import useLocalStorage from './hooks/useLocalStorage';
 import useNavigationHistory from './hooks/useNavigationHistory';
@@ -22,6 +22,7 @@ export default function App() {
   const [settings, setSettings] = useLocalStorage<Settings>('settings', INITIAL_SETTINGS);
   const [secretNotes, setSecretNotes] = useLocalStorage<SecretNote[]>('secretNotes', []);
   const [secretsConfig, setSecretsConfig] = useLocalStorage<SecretsConfig | null>('secretsConfig', null);
+  const [secretsUnlocked, setSecretsUnlocked] = useState(false);
 
   const { currentScreen, selectedNoteId, navigate, goBack, canGoBack, registerBackHandler, triggerBack, setPendingNavigation, executePendingNavigation } = useNavigationHistory();
 
@@ -142,7 +143,7 @@ export default function App() {
     setNotes((prevNotes) =>
       prevNotes.map((n) =>
         n.id === noteId
-          ? { ...n, isPinned: !n.isPinned, lastModified: new Date().toISOString() }
+          ? { ...n, isPinned: !n.isPinned }
           : n
       )
     );
@@ -185,8 +186,9 @@ export default function App() {
         return [noteToSave, ...prevNotes];
       }
     });
-    goBack();
-  }, [setSecretNotes, goBack]);
+    // Navigate back to secrets screen explicitly
+    navigate('secrets');
+  }, [setSecretNotes, navigate]);
 
   const handleUpdateSecretNote = useCallback((noteToUpdate: SecretNote) => {
     setSecretNotes((prevNotes) => {
@@ -205,8 +207,9 @@ export default function App() {
 
   const handleDeleteSecretNoteFromEditor = useCallback((noteId: string) => {
     handleDeleteSecretNote(noteId);
-    goBack();
-  }, [handleDeleteSecretNote, goBack]);
+    // Navigate back to secrets screen explicitly
+    navigate('secrets');
+  }, [handleDeleteSecretNote, navigate]);
 
   const handleOpenSecrets = () => {
     navigate('secrets');
@@ -253,9 +256,10 @@ export default function App() {
             note={selectedSecretNote}
             onSave={handleSaveSecretNote}
             onUpdateNote={handleUpdateSecretNote}
-            onBack={handleBack}
+            onBack={() => navigate('secrets')}
             onDelete={handleDeleteSecretNoteFromEditor}
             registerBackHandler={registerBackHandler}
+            executePendingNavigation={executePendingNavigation}
           />
         );
       case 'list':
@@ -273,7 +277,7 @@ export default function App() {
   };
 
   return (
-    <AppProvider value={{ notes, setNotes, settings, setSettings, secretNotes, setSecretNotes, secretsConfig, setSecretsConfig }}>
+    <AppProvider value={{ notes, setNotes, settings, setSettings, secretNotes, setSecretNotes, secretsConfig, setSecretsConfig, secretsUnlocked, setSecretsUnlocked }}>
       <div className="w-full h-full font-sans bg-white dark:bg-primary overflow-hidden">
         <div className="w-full h-full shadow-2xl">
           <SafeAreaContainer className="bg-white dark:bg-primary">
