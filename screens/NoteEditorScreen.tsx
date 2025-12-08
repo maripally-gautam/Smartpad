@@ -1013,6 +1013,40 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     }
   };
 
+  // Scroll to keep the cursor visible while typing
+  const scrollToCursor = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    if (!range) return;
+
+    // Create a temporary span at the cursor position to measure
+    const rect = range.getBoundingClientRect();
+    if (!rect || (rect.top === 0 && rect.bottom === 0)) return;
+
+    const scrollContainer = scrollableRef.current;
+    if (!scrollContainer) return;
+
+    const containerRect = scrollContainer.getBoundingClientRect();
+
+    // Calculate the visible area (accounting for toolbar when keyboard is visible)
+    const toolbarHeight = keyboardVisible ? 88 : 0;
+    const visibleBottom = containerRect.bottom - toolbarHeight - 20; // 20px padding
+    const visibleTop = containerRect.top + 20;
+
+    // If cursor is below visible area, scroll down
+    if (rect.bottom > visibleBottom) {
+      const scrollAmount = rect.bottom - visibleBottom;
+      scrollContainer.scrollTop += scrollAmount;
+    }
+    // If cursor is above visible area, scroll up
+    else if (rect.top < visibleTop) {
+      const scrollAmount = visibleTop - rect.top;
+      scrollContainer.scrollTop -= scrollAmount;
+    }
+  };
+
   const handleContentInput = () => {
     const html = contentRef.current?.innerHTML || '';
     setContent(html);
@@ -1021,6 +1055,8 @@ const NoteEditorScreen: React.FC<NoteEditorScreenProps> = ({ note, onSave, onUpd
     if (!hasBeenEdited) {
       setHasBeenEdited(true);
     }
+    // Scroll to keep cursor visible
+    scrollToCursor();
   };
 
   const handleStyleClick = (command: string) => {

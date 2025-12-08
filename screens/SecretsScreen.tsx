@@ -102,7 +102,7 @@ const SetupPasswordModal: React.FC<{
                                     type="button"
                                     onMouseDown={(e) => e.preventDefault()}
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 active:text-slate-600 dark:active:text-gray-300 transition-colors"
                                 >
                                     <Icon name={showPassword ? "eye-off" : "eye"} className="w-5 h-5" />
                                 </button>
@@ -122,7 +122,7 @@ const SetupPasswordModal: React.FC<{
                                     type="button"
                                     onMouseDown={(e) => e.preventDefault()}
                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 active:text-slate-600 dark:active:text-gray-300 transition-colors"
                                 >
                                     <Icon name={showConfirmPassword ? "eye-off" : "eye"} className="w-5 h-5" />
                                 </button>
@@ -271,7 +271,7 @@ const EnterPasswordModal: React.FC<{
                                 type="button"
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 active:text-slate-600 dark:active:text-gray-300 transition-colors"
                             >
                                 <Icon name={showPassword ? "eye-off" : "eye"} className="w-5 h-5" />
                             </button>
@@ -410,7 +410,7 @@ const ChangePasswordModal: React.FC<{
                                 type="button"
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 active:text-slate-600 dark:active:text-gray-300 transition-colors"
                             >
                                 <Icon name={showCurrentPassword ? "eye-off" : "eye"} className="w-5 h-5" />
                             </button>
@@ -432,7 +432,7 @@ const ChangePasswordModal: React.FC<{
                                     type="button"
                                     onMouseDown={(e) => e.preventDefault()}
                                     onClick={() => setShowNewPassword(!showNewPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 active:text-slate-600 dark:active:text-gray-300 transition-colors"
                                 >
                                     <Icon name={showNewPassword ? "eye-off" : "eye"} className="w-5 h-5" />
                                 </button>
@@ -452,7 +452,7 @@ const ChangePasswordModal: React.FC<{
                                     type="button"
                                     onMouseDown={(e) => e.preventDefault()}
                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300 transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 active:text-slate-600 dark:active:text-gray-300 transition-colors"
                                 >
                                     <Icon name={showConfirmPassword ? "eye-off" : "eye"} className="w-5 h-5" />
                                 </button>
@@ -530,7 +530,7 @@ const SecretNoteCard: React.FC<{
         <>
             <div
                 onClick={onSelect}
-                className="bg-slate-100 dark:bg-secondary p-4 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-border-color transition-colors"
+                className="bg-slate-100 dark:bg-secondary/80 p-4 rounded-xl cursor-pointer active:bg-slate-200 dark:active:bg-border-color transition-all duration-200 border border-slate-200 dark:border-gray-700/50 shadow-sm"
             >
                 <div className="flex justify-between items-start">
                     <h3 className="font-semibold text-slate-800 dark:text-text-primary truncate flex-1">
@@ -538,7 +538,7 @@ const SecretNoteCard: React.FC<{
                     </h3>
                     <button
                         onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
-                        className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                        className="p-1.5 text-red-500 active:text-red-600 active:bg-red-50 dark:active:bg-red-900/30 rounded-lg transition-all"
                     >
                         <Icon name="trash" className="w-4 h-4" />
                     </button>
@@ -635,7 +635,7 @@ const SecretsScreen: React.FC<SecretsScreenProps> = ({ onBack, onSelectNote, onN
     return (
         <div className="h-full flex flex-col bg-white dark:bg-primary text-slate-800 dark:text-text-primary">
             <header className="p-4 flex items-center gap-3 border-b border-slate-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-900 z-10">
-                <button onClick={handleBack} className="p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2">
+                <button onClick={handleBack} className="p-2 -ml-2 rounded-full active:bg-slate-100 dark:active:bg-gray-800 transition-colors flex items-center gap-2">
                     <Icon name="back" className="w-5 h-5" />
                     <span className="text-xl font-bold bg-gradient-to-r from-accent to-blue-600 bg-clip-text text-transparent">Secrets</span>
                 </button>
@@ -644,12 +644,12 @@ const SecretsScreen: React.FC<SecretsScreenProps> = ({ onBack, onSelectNote, onN
                     <>
                         <button
                             onClick={() => setShowChangePasswordModal(true)}
-                            className="p-2 text-slate-500 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                            className="p-2 text-slate-500 dark:text-text-secondary active:bg-slate-100 dark:active:bg-gray-800 rounded-full transition-colors"
                             title="Change Password"
                         >
                             <Icon name="settings" className="w-5 h-5" />
                         </button>
-                        <button onClick={handleLock} className="p-2 text-slate-500 dark:text-text-secondary hover:bg-slate-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                        <button onClick={handleLock} className="p-2 text-slate-500 dark:text-text-secondary active:bg-slate-100 dark:active:bg-gray-800 rounded-full transition-colors">
                             <Icon name="lock" className="w-5 h-5" />
                         </button>
                     </>
@@ -682,7 +682,7 @@ const SecretsScreen: React.FC<SecretsScreenProps> = ({ onBack, onSelectNote, onN
                                 <p className="text-slate-500 dark:text-text-secondary mb-4">No secret notes yet</p>
                                 <button
                                     onClick={onNewNote}
-                                    className="px-6 py-3 rounded-full bg-accent text-white font-semibold"
+                                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 via-blue-600 to-cyan-500 text-white font-semibold shadow-lg shadow-blue-500/30 transition-all duration-200 active:scale-95"
                                 >
                                     Add Secret Note
                                 </button>
@@ -691,7 +691,7 @@ const SecretsScreen: React.FC<SecretsScreenProps> = ({ onBack, onSelectNote, onN
                             <>
                                 <button
                                     onClick={onNewNote}
-                                    className="w-full p-4 rounded-lg border-2 border-dashed border-slate-300 dark:border-border-color text-slate-500 dark:text-text-secondary hover:border-accent hover:text-accent transition-colors flex items-center justify-center gap-2"
+                                    className="w-full p-4 rounded-xl bg-gradient-to-r from-blue-500 via-blue-600 to-cyan-500 text-white font-semibold shadow-lg shadow-blue-500/30 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
                                 >
                                     <Icon name="plus" className="w-5 h-5" />
                                     Add Secret Note

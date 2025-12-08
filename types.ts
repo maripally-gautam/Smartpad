@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 
-export type Screen = 'list' | 'editor' | 'settings' | 'secrets' | 'secret-editor';
+export type Screen = 'list' | 'editor' | 'settings' | 'secrets' | 'secret-editor' | 'chatbot';
 
 export interface MediaAttachment {
   id: string;
@@ -56,6 +56,28 @@ export interface Settings {
   soundForNotifications: boolean;
   autoSave: boolean;
   deleteCompletedTasks: boolean;
+  geminiApiKey: string;
+}
+
+// Chatbot types
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
+  functionCall?: {
+    name: string;
+    args: Record<string, unknown>;
+    result?: string;
+  };
+}
+
+export interface ChatConversation {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  createdAt: string;
+  lastMessageAt: string;
 }
 
 export interface AppContextType {

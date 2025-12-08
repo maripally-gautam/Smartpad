@@ -7,4 +7,5 @@ export const INITIAL_SETTINGS: Settings = {
   soundForNotifications: false,
   autoSave: false,
   deleteCompletedTasks: false,
+  geminiApiKey: '',
 };

@@ -12,9 +12,9 @@ export default {
     theme: {
         extend: {
             colors: {
-                // Dark mode colors - richer, more vibrant
-                'primary': '#111827',        // Darker, deeper background
-                'secondary': '#1F2937',      // Slightly lighter secondary
+                // Dark mode colors - premium black + blue theme
+                'primary': '#0a0f1a',        // Deep dark blue-black background
+                'secondary': '#111827',      // Slightly lighter secondary with blue tint
                 'accent': '#3B82F6',         // Vibrant blue accent
                 'accent-light': '#60A5FA',   // Lighter accent for hover
                 'text-primary': '#F9FAFB',   // Bright white text

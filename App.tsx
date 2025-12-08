@@ -13,8 +13,10 @@ import NoteEditorScreen from './screens/NoteEditorScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import SecretsScreen from './screens/SecretsScreen';
 import SecretEditorScreen from './screens/SecretEditorScreen';
+import ChatbotScreen from './screens/ChatbotScreen';
 import TopNavBar from './components/TopNavBar';
 import SafeAreaContainer from './components/SafeAreaContainer';
+import FloatingChatButton from './components/FloatingChatButton';
 import { INITIAL_SETTINGS } from './constants';
 
 export default function App() {
@@ -215,6 +217,25 @@ export default function App() {
     navigate('secrets');
   };
 
+  // Chatbot handlers
+  const handleOpenChatbot = () => {
+    navigate('chatbot');
+  };
+
+  const handleChatbotCreateNote = useCallback((noteData: Omit<Note, 'id' | 'lastModified'>): string => {
+    const newNote: Note = {
+      ...noteData,
+      id: new Date().toISOString(),
+      lastModified: new Date().toISOString(),
+    };
+    setNotes((prevNotes) => [newNote, ...prevNotes]);
+    return newNote.id;
+  }, [setNotes]);
+
+  const handleChatbotUpdateSettings = useCallback((updates: Partial<Settings>) => {
+    setSettings(prev => ({ ...prev, ...updates }));
+  }, [setSettings]);
+
   const selectedNote = useMemo(
     () => notes.find((note) => note.id === selectedNoteId) || null,
     [notes, selectedNoteId]
@@ -262,6 +283,17 @@ export default function App() {
             executePendingNavigation={executePendingNavigation}
           />
         );
+      case 'chatbot':
+        return (
+          <ChatbotScreen
+            onBack={handleBack}
+            onGoToSettings={() => navigate('settings')}
+            onCreateNote={handleChatbotCreateNote}
+            onUpdateNote={handleUpdateNote}
+            onDeleteNote={deleteNoteById}
+            onUpdateSettings={handleChatbotUpdateSettings}
+          />
+        );
       case 'list':
       default:
         return (
@@ -290,6 +322,13 @@ export default function App() {
             />
             <main className="flex-1 overflow-hidden relative flex flex-col">
               {renderScreen()}
+              {/* Floating chat button - only show on list screen */}
+              {currentScreen === 'list' && (
+                <FloatingChatButton
+                  onClick={handleOpenChatbot}
+                  hasApiKey={!!settings.geminiApiKey}
+                />
+              )}
             </main>
           </SafeAreaContainer>
         </div>
