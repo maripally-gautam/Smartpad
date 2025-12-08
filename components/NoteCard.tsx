@@ -107,13 +107,13 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({ note, onClick, onDelete, o
   return (
     <div
       onClick={onClick}
-      className={`relative bg-slate-50 dark:bg-secondary p-4 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-gray-700 transition-all duration-150 active:scale-[0.98] border-l-4 shadow-sm hover:shadow-md ${getBorderColorClass()}`}
+      className={`relative bg-slate-50 dark:bg-secondary p-4 rounded-xl cursor-pointer transition-all duration-150 active:scale-[0.98] border-l-4 shadow-sm ${getBorderColorClass()}`}
     >
       <button
         onClick={handleCompletedClick}
         className={`absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-100 outline-none ${note.isCompleted
           ? 'bg-emerald-500 border-emerald-500 shadow-emerald-500/30 shadow-sm'
-          : 'bg-transparent border-slate-300 dark:border-gray-500 hover:border-accent hover:scale-110'
+          : 'bg-transparent border-slate-300 dark:border-gray-500 active:border-accent active:scale-110'
           }`}
         aria-label={note.isCompleted ? "Mark as pending" : "Mark as completed"}
       >
@@ -138,21 +138,21 @@ const NoteCardComponent: React.FC<NoteCardProps> = ({ note, onClick, onDelete, o
         <div className="flex items-center gap-0.5">
           <button
             onClick={handlePinClick}
-            className={`p-2 rounded-full transition-all duration-100 outline-none ${note.isPinned ? 'text-accent bg-accent/10' : 'text-slate-400 dark:text-gray-500 hover:text-accent'} hover:bg-accent/10 active:scale-90`}
+            className={`p-2 rounded-full transition-all duration-100 outline-none ${note.isPinned ? 'text-accent bg-accent/10' : 'text-accent'} active:scale-90`}
             aria-label="Pin note"
           >
             <Icon name={note.isPinned ? 'pin-filled' : 'pin'} className="w-5 h-5" />
           </button>
           <button
             onClick={handleFavouriteClick}
-            className={`p-2 rounded-full transition-all duration-100 outline-none ${note.isFavourite ? 'text-amber-500 bg-amber-500/10' : 'text-slate-400 dark:text-gray-500 hover:text-amber-500'} hover:bg-amber-500/10 active:scale-90`}
+            className={`p-2 rounded-full transition-all duration-100 outline-none ${note.isFavourite ? 'text-amber-500 bg-amber-500/10' : 'text-amber-500'} active:scale-90`}
             aria-label="Favourite note"
           >
             <Icon name={note.isFavourite ? 'star-filled' : 'star'} className="w-5 h-5" />
           </button>
           <button
             onClick={handleDeleteClick}
-            className="p-2 rounded-full text-slate-400 dark:text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-all duration-100 outline-none active:scale-90"
+            className="p-2 rounded-full text-red-500 transition-all duration-100 outline-none active:scale-90"
             aria-label="Delete note"
           >
             <Icon name="trash" className="w-5 h-5" />

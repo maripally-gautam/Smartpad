@@ -7,6 +7,7 @@ interface TopNavBarProps {
   onNavigate: (screen: Screen) => void;
   onNewNote: () => void;
   onTriggerBack?: () => void; // Optional: used to trigger back handler when in editor
+  onSetPendingNavigation?: (nav: { screen: Screen; noteId: string | null } | null) => void;
 }
 
 const TopNavItem: React.FC<{
@@ -16,7 +17,7 @@ const TopNavItem: React.FC<{
 }> = ({ label, isActive, onClick }) => {
   const activeClass = isActive
     ? 'text-accent border-accent font-semibold'
-    : 'text-slate-500 dark:text-gray-400 border-transparent hover:text-accent dark:hover:text-accent';
+    : 'text-slate-500 dark:text-gray-400 border-transparent';
   return (
     <button onClick={onClick} className={`px-3 py-2 text-sm font-medium border-b-2 transition-all duration-150 ${activeClass}`}>
       {label}
@@ -24,12 +25,16 @@ const TopNavItem: React.FC<{
   );
 };
 
-const TopNavBar: React.FC<TopNavBarProps> = ({ currentScreen, onNavigate, onNewNote, onTriggerBack }) => {
+const TopNavBar: React.FC<TopNavBarProps> = ({ currentScreen, onNavigate, onNewNote, onTriggerBack, onSetPendingNavigation }) => {
 
   // Handle navigation with potential unsaved changes check
   const handleNavClick = (screen: Screen) => {
     // If we're in editor and trying to navigate away, trigger the back handler first
-    if (currentScreen === 'editor' && screen !== 'editor' && onTriggerBack) {
+    if ((currentScreen === 'editor' || currentScreen === 'secret-editor') && screen !== 'editor' && onTriggerBack) {
+      // Store the pending navigation target
+      if (onSetPendingNavigation) {
+        onSetPendingNavigation({ screen, noteId: null });
+      }
       onTriggerBack();
       return;
     }
@@ -39,7 +44,11 @@ const TopNavBar: React.FC<TopNavBarProps> = ({ currentScreen, onNavigate, onNewN
   // Handle new note with potential unsaved changes check
   const handleNewNoteClick = () => {
     // If we're in editor and trying to create a new note, trigger the back handler first
-    if (currentScreen === 'editor' && onTriggerBack) {
+    if ((currentScreen === 'editor' || currentScreen === 'secret-editor') && onTriggerBack) {
+      // Clear pending navigation - we'll just go back after save/discard
+      if (onSetPendingNavigation) {
+        onSetPendingNavigation(null);
+      }
       onTriggerBack();
       return;
     }
@@ -68,7 +77,7 @@ const TopNavBar: React.FC<TopNavBarProps> = ({ currentScreen, onNavigate, onNewN
         </div>
         <button
           onClick={handleNewNoteClick}
-          className="bg-gradient-to-r from-accent to-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg shadow-accent/30 hover:shadow-accent/50 hover:scale-105 transition-all duration-150 active:scale-95 flex-shrink-0"
+          className="bg-gradient-to-r from-accent to-blue-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg shadow-accent/30 transition-all duration-150 active:scale-95 flex-shrink-0"
           aria-label="New Note"
         >
           <Icon name="plus" className="w-6 h-6" />

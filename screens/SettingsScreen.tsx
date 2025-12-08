@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { Theme } from '../types';
 import Icon from '../components/Icon';
@@ -19,15 +19,15 @@ const SettingsRow: React.FC<{
   onClick?: () => void;
 }> = ({ icon, title, subtitle, children, onClick }) => (
   <div
-    className={`bg-slate-50 dark:bg-secondary p-4 rounded-xl flex items-center shadow-sm transition-all ${onClick ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-gray-700 active:scale-[0.99]' : ''}`}
+    className={`bg-slate-50 dark:bg-secondary p-4 rounded-xl flex items-center shadow-sm transition-all ${onClick ? 'cursor-pointer active:scale-[0.99]' : ''}`}
     onClick={onClick}
   >
     <div className="bg-gradient-to-br from-accent to-blue-600 p-2.5 rounded-xl mr-3 shadow-sm">
       <Icon name={icon} className="w-5 h-5 text-white" />
     </div>
     <div className="flex-1">
-      <p className="text-slate-800 dark:text-text-primary font-medium">{title}</p>
-      {subtitle && <p className="text-slate-500 dark:text-text-secondary text-sm">{subtitle}</p>}
+      <p className="text-white font-medium">{title}</p>
+      {subtitle && <p className="text-white/70 text-sm">{subtitle}</p>}
     </div>
     {children}
   </div>
@@ -46,18 +46,18 @@ const ConfirmationDialog: React.FC<{
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 animate-fade-in">
       <div className="bg-white dark:bg-secondary p-6 rounded-lg w-full max-w-sm mx-4 text-center shadow-lg">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-text-primary mb-2">{title}</h2>
-        <p className="text-slate-600 dark:text-text-secondary mb-6">{message}</p>
+        <h2 className="text-xl font-bold text-white mb-2">{title}</h2>
+        <p className="text-white/70 mb-6">{message}</p>
         <div className="flex justify-center gap-4">
           <button
             onClick={onClose}
-            className="px-6 py-2 rounded-full bg-slate-200 dark:bg-border-color text-slate-800 dark:text-text-primary font-semibold hover:bg-slate-300 dark:hover:bg-opacity-80 transition-colors"
+            className="px-6 py-2 rounded-full bg-slate-200 dark:bg-border-color text-white font-semibold transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className="px-6 py-2 rounded-full bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors"
+            className="px-6 py-2 rounded-full bg-red-600 text-white font-semibold transition-colors"
           >
             {confirmText}
           </button>
@@ -70,6 +70,33 @@ const ConfirmationDialog: React.FC<{
 const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack, onOpenSecrets }) => {
   const { settings, setSettings, setNotes } = useAppContext();
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+  // Theme swipe handling
+  const themeTouchStartX = useRef<number>(0);
+  const themeTouchEndX = useRef<number>(0);
+
+  const handleThemeTouchStart = (e: React.TouchEvent) => {
+    themeTouchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleThemeTouchMove = (e: React.TouchEvent) => {
+    themeTouchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleThemeTouchEnd = () => {
+    const diff = themeTouchStartX.current - themeTouchEndX.current;
+    const minSwipeDistance = 50;
+
+    if (Math.abs(diff) > minSwipeDistance) {
+      if (diff > 0) {
+        // Swiped left - go to dark
+        updateSetting('theme', 'dark');
+      } else {
+        // Swiped right - go to light
+        updateSetting('theme', 'light');
+      }
+    }
+  };
 
   const updateSetting = <K extends keyof typeof settings,>(key: K, value: (typeof settings)[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -109,9 +136,9 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack, onOpenSecrets }
 
 
   return (
-    <div className="h-full flex flex-col bg-slate-100 dark:bg-primary text-slate-800 dark:text-text-primary">
+    <div className="h-full flex flex-col bg-slate-100 dark:bg-primary text-white">
       <header className="p-4 flex items-center gap-3 border-b border-slate-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-900 z-10">
-        <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-slate-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2">
+        <button onClick={onBack} className="p-2 -ml-2 rounded-full transition-colors flex items-center gap-2">
           <Icon name="back" className="w-5 h-5" />
           <span className="text-xl font-bold bg-gradient-to-r from-accent to-blue-600 bg-clip-text text-transparent">Settings</span>
         </button>
@@ -119,15 +146,20 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack, onOpenSecrets }
 
       <div className="flex-1 p-4 overflow-y-auto space-y-5">
         <section>
-          <h2 className="text-slate-500 dark:text-text-secondary font-semibold text-xs mb-2 px-1 uppercase tracking-wider">Appearance</h2>
+          <h2 className="text-white/60 font-semibold text-xs mb-2 px-1 uppercase tracking-wider">Appearance</h2>
           <div className="space-y-2">
             <SettingsRow icon="theme" title="Theme">
-              <div className="bg-slate-200 dark:bg-gray-700 p-1 rounded-full flex text-sm">
+              <div
+                className="bg-slate-200 dark:bg-gray-700 p-1 rounded-full flex text-sm"
+                onTouchStart={handleThemeTouchStart}
+                onTouchMove={handleThemeTouchMove}
+                onTouchEnd={handleThemeTouchEnd}
+              >
                 {(['light', 'dark'] as Theme[]).map(theme => (
                   <button
                     key={theme}
                     onClick={() => updateSetting('theme', theme)}
-                    className={`px-4 py-1.5 capitalize rounded-full font-medium transition-all ${settings.theme === theme ? 'bg-gradient-to-r from-accent to-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-text-secondary hover:text-slate-800 dark:hover:text-text-primary'}`}
+                    className={`px-4 py-1.5 capitalize rounded-full font-medium transition-all ${settings.theme === theme ? 'bg-gradient-to-r from-accent to-blue-600 text-white shadow-sm' : 'text-white/70'}`}
                   >
                     {theme}
                   </button>
@@ -138,7 +170,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack, onOpenSecrets }
         </section>
 
         <section>
-          <h2 className="text-slate-500 dark:text-text-secondary font-semibold text-xs mb-2 px-1 uppercase tracking-wider">Notifications</h2>
+          <h2 className="text-white/60 font-semibold text-xs mb-2 px-1 uppercase tracking-wider">Notifications</h2>
           <div className="space-y-2">
             <SettingsRow icon="notifications" title="Allow Notifications" subtitle="For note reminders">
               <ToggleSwitch enabled={settings.allowNotifications} onChange={handleNotificationsToggle} />
@@ -147,7 +179,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack, onOpenSecrets }
         </section>
 
         <section>
-          <h2 className="text-slate-500 dark:text-text-secondary font-semibold text-xs mb-2 px-1 uppercase tracking-wider">General</h2>
+          <h2 className="text-white/60 font-semibold text-xs mb-2 px-1 uppercase tracking-wider">General</h2>
           <div className="space-y-2">
             <SettingsRow icon="save" title="Auto-Save" subtitle={settings.autoSave ? "Enabled, every 5s" : "Disabled"}>
               <ToggleSwitch enabled={settings.autoSave} onChange={(val) => updateSetting('autoSave', val)} />
@@ -159,7 +191,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack, onOpenSecrets }
         </section>
 
         <section>
-          <h2 className="text-slate-500 dark:text-text-secondary font-semibold text-xs mb-2 px-1 uppercase tracking-wider">Privacy</h2>
+          <h2 className="text-white/60 font-semibold text-xs mb-2 px-1 uppercase tracking-wider">Privacy</h2>
           <div className="space-y-2">
             <SettingsRow
               icon="lock"
@@ -167,7 +199,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack, onOpenSecrets }
               subtitle="Password-protected private notes"
               onClick={onOpenSecrets}
             >
-              <Icon name="chevronRight" className="w-5 h-5 text-slate-400" />
+              <Icon name="chevronRight" className="w-5 h-5 text-white/50" />
             </SettingsRow>
           </div>
         </section>

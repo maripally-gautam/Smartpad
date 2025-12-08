@@ -19,6 +19,9 @@ interface UseNavigationHistoryReturn {
   canGoBack: () => boolean;
   registerBackHandler: (handler: BackHandler | null) => void;
   triggerBack: () => void;
+  pendingNavigation: { screen: Screen; noteId: string | null } | null;
+  setPendingNavigation: (nav: { screen: Screen; noteId: string | null } | null) => void;
+  executePendingNavigation: () => void;
 }
 
 /**
@@ -28,6 +31,7 @@ interface UseNavigationHistoryReturn {
 export function useNavigationHistory(): UseNavigationHistoryReturn {
   const [currentScreen, setCurrentScreen] = useState<Screen>('list');
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [pendingNavigation, setPendingNavigation] = useState<{ screen: Screen; noteId: string | null } | null>(null);
   const backHandlerRef = useRef<BackHandler | null>(null);
   const isBlockingRef = useRef(false);
 
@@ -94,6 +98,16 @@ export function useNavigationHistory(): UseNavigationHistoryReturn {
     window.history.back();
   }, []);
 
+  // Execute pending navigation after unsaved changes are handled
+  const executePendingNavigation = useCallback(() => {
+    if (pendingNavigation) {
+      navigate(pendingNavigation.screen, pendingNavigation.noteId);
+      setPendingNavigation(null);
+    } else {
+      window.history.back();
+    }
+  }, [pendingNavigation, navigate]);
+
   return {
     currentScreen,
     selectedNoteId,
@@ -102,6 +116,9 @@ export function useNavigationHistory(): UseNavigationHistoryReturn {
     canGoBack,
     registerBackHandler,
     triggerBack,
+    pendingNavigation,
+    setPendingNavigation,
+    executePendingNavigation,
   };
 }
 

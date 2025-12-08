@@ -23,7 +23,7 @@ export default function App() {
   const [secretNotes, setSecretNotes] = useLocalStorage<SecretNote[]>('secretNotes', []);
   const [secretsConfig, setSecretsConfig] = useLocalStorage<SecretsConfig | null>('secretsConfig', null);
 
-  const { currentScreen, selectedNoteId, navigate, goBack, canGoBack, registerBackHandler, triggerBack } = useNavigationHistory();
+  const { currentScreen, selectedNoteId, navigate, goBack, canGoBack, registerBackHandler, triggerBack, setPendingNavigation, executePendingNavigation } = useNavigationHistory();
 
   // Apply theme to document
   useTheme(settings.theme);
@@ -233,6 +233,7 @@ export default function App() {
             onBack={handleBack}
             onDelete={handleDeleteNoteFromEditor}
             registerBackHandler={registerBackHandler}
+            executePendingNavigation={executePendingNavigation}
           />
         );
       case 'settings':
@@ -281,6 +282,7 @@ export default function App() {
               onNavigate={handleNavigate}
               onNewNote={handleNewNote}
               onTriggerBack={triggerBack}
+              onSetPendingNavigation={setPendingNavigation}
             />
             <main className="flex-1 overflow-hidden relative flex flex-col">
               {renderScreen()}

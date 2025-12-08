@@ -142,7 +142,7 @@ const NotesListScreen: React.FC<NotesListScreenProps> = ({ onSelectNote, onDelet
         </div>
         <div className="pt-3 flex justify-between items-center gap-2 text-sm">
           <div className="relative" ref={sortDropdownRef}>
-            <button onClick={() => setIsSortOpen(!isSortOpen)} className="flex items-center gap-1.5 bg-slate-100 dark:bg-gray-800 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-gray-300 transition-all hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95">
+            <button onClick={() => setIsSortOpen(!isSortOpen)} className="flex items-center gap-1.5 bg-slate-100 dark:bg-gray-800 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-gray-300 transition-all active:scale-95">
               <span>Order: {sortOptions.find(o => o.key === sortOrder)?.label}</span>
               <Icon name="chevron-down" className={`w-4 h-4 transition-transform duration-200 ${isSortOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -152,7 +152,7 @@ const NotesListScreen: React.FC<NotesListScreenProps> = ({ onSelectNote, onDelet
                   <button
                     key={option.key}
                     onClick={() => { setSortOrder(option.key); setIsSortOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 transition-colors ${sortOrder === option.key ? 'bg-accent/10 text-accent font-medium' : 'hover:bg-slate-100 dark:hover:bg-gray-700'}`}
+                    className={`w-full text-left px-4 py-2.5 transition-colors ${sortOrder === option.key ? 'bg-accent/10 text-accent font-medium' : 'active:bg-slate-100 dark:active:bg-gray-700'}`}
                   >
                     {option.label}
                   </button>
@@ -162,7 +162,7 @@ const NotesListScreen: React.FC<NotesListScreenProps> = ({ onSelectNote, onDelet
           </div>
 
           <div className="relative" ref={filterDropdownRef}>
-            <button onClick={() => setIsFilterOpen(!isFilterOpen)} className="flex items-center gap-1.5 bg-slate-100 dark:bg-gray-800 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-gray-300 transition-all hover:bg-slate-200 dark:hover:bg-gray-700 active:scale-95">
+            <button onClick={() => setIsFilterOpen(!isFilterOpen)} className="flex items-center gap-1.5 bg-slate-100 dark:bg-gray-800 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-gray-300 transition-all active:scale-95">
               <span>Filter: {filterOptions.find(o => o.key === filter)?.label}</span>
               <Icon name="filter" className="w-4 h-4" />
             </button>
@@ -172,7 +172,7 @@ const NotesListScreen: React.FC<NotesListScreenProps> = ({ onSelectNote, onDelet
                   <button
                     key={option.key}
                     onClick={() => { setFilter(option.key); setIsFilterOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 transition-colors ${filter === option.key ? 'bg-accent/10 text-accent font-medium' : 'hover:bg-slate-100 dark:hover:bg-gray-700'}`}
+                    className={`w-full text-left px-4 py-2.5 transition-colors ${filter === option.key ? 'bg-accent/10 text-accent font-medium' : 'active:bg-slate-100 dark:active:bg-gray-700'}`}
                   >
                     {option.label}
                   </button>
